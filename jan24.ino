@@ -177,41 +177,40 @@ void drawEnemy(uint8_t x, uint8_t y, SQ7x8 distance) {
   uint8_t frame = 0;
   if (enemies[currentEnemyIndex].scaledSize < 8) {
     sprite = enemy2x3;
-    spriteWidth = 2;
-    spriteHeight = 3;
+    spriteWidth = enemy2x3Width;
+    spriteHeight = enemy2x3Height;
   } else if (enemies[currentEnemyIndex].scaledSize < 15) {
     sprite = mech6x8;
-    spriteWidth = 6;
-    spriteHeight = 8;
+    spriteWidth = mech6x8Width;
+    spriteHeight = mech6x8Height;
   } else if (enemies[currentEnemyIndex].scaledSize < 20) {
     sprite = Battle_Cat8x11;
-    spriteWidth = 8;
-    spriteHeight = 11;
-    //Add in between size here
+    spriteWidth = Battle_Cat8x11_width;
+    spriteHeight = Battle_Cat8x11_height;
   } else if (enemies[currentEnemyIndex].scaledSize < 30) {
     sprite = Battle_Cat16x21;
-    spriteWidth = 16;
-    spriteHeight = 21;
+    spriteWidth = Battle_Cat16x21_width;
+    spriteHeight = Battle_Cat16x21_height;
   } else if (enemies[currentEnemyIndex].scaledSize < 40) {
     sprite = Battle_Cat30x40;
-    spriteWidth = 30;
-    spriteHeight = 40;
+    spriteWidth = Battle_Cat30x40_width;
+    spriteHeight = Battle_Cat30x40_height;
   } else if (enemies[currentEnemyIndex].scaledSize < 60) {
     sprite = Battle_Cat50x67;
-    spriteWidth = 50;
-    spriteHeight = 67;
+    spriteWidth = Battle_Cat50x67_width;
+    spriteHeight = Battle_Cat50x67_height;
   } else if (enemies[currentEnemyIndex].scaledSize < 80) {
     sprite = Battle_Cat70x94;
-    spriteWidth = 70;
-    spriteHeight = 94;
+    spriteWidth = Battle_Cat70x94_width;
+    spriteHeight = Battle_Cat70x94_height;
   } else if (enemies[currentEnemyIndex].scaledSize < 100) {
     sprite = Battle_Cat90x121;
-    spriteWidth = 90;
-    spriteHeight = 121;
+    spriteWidth = Battle_Cat90x121_width;
+    spriteHeight = Battle_Cat90x121_height;
   } else {
     sprite = Battle_Cat110x148;
-    spriteWidth = 110;
-    spriteHeight = 148;
+    spriteWidth = Battle_Cat110x148_width;
+    spriteHeight = Battle_Cat110x148_height;
   }
 
   //Sprites::drawSelfMasked(x - spriteWidth / 2, y - spriteWidth / 2, sprite, 0);
