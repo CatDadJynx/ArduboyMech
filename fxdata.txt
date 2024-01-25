@@ -1,0 +1,11 @@
+image_t enemy2x3 = "Sprites/enemy_2x3.png"
+image_t mech6x8 = "Sprites/mech_6x8.png"
+image_t Battle_Cat8x11 = "Sprites/Battle_Cat_8x11.png"
+image_t Battle_Cat16x21 = "Sprites/Battle_Cat_16x21.png"
+image_t Battle_Cat30x40 = "Sprites/Battle_Cat_30x40.png"
+image_t Battle_Cat50x67 = "Sprites/Battle_Cat_50x67.png"
+image_t Battle_Cat70x94 = "Sprites/Battle_Cat_70x94.png"
+image_t Battle_Cat90x121 = "Sprites/Battle_Cat_90x121.png"
+image_t Battle_Cat110x148 = "Sprites/Battle_Cat_110x148.png"
+
+
