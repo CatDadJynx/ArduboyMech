@@ -6,8 +6,8 @@ using uint24_t = __uint24;
 
 // Initialize FX hardware using  FX::begin(FX_DATA_PAGE); in the setup() function.
 
-constexpr uint16_t FX_DATA_PAGE  = 0xffd8;
-constexpr uint24_t FX_DATA_BYTES = 10120;
+constexpr uint16_t FX_DATA_PAGE  = 0xff24;
+constexpr uint24_t FX_DATA_BYTES = 56086;
 
 constexpr uint24_t enemy2x3 = 0x000000;
 constexpr uint16_t enemy2x3Width  = 2;
@@ -44,4 +44,32 @@ constexpr uint16_t Battle_Cat90x121_height = 121;
 constexpr uint24_t Battle_Cat110x148 = 0x001730;
 constexpr uint16_t Battle_Cat110x148_width  = 110;
 constexpr uint16_t Battle_Cat110x148_height = 148;
+
+constexpr uint24_t battleCatCockpit = 0x002788;
+constexpr uint16_t battleCatCockpitWidth  = 128;
+constexpr uint16_t battleCatCockpitHeight = 64;
+
+constexpr uint24_t thorHammerCockpit = 0x002F8C;
+constexpr uint16_t thorHammerCockpitWidth  = 128;
+constexpr uint16_t thorHammerCockpitHeight = 64;
+
+constexpr uint24_t explosion23x23 = 0x003790;
+constexpr uint16_t explosion23x23Width  = 23;
+constexpr uint16_t explosion23x23Height = 23;
+constexpr uint8_t  explosion23x23Frames = 7;
+
+constexpr uint24_t explosion46x46 = 0x003B5A;
+constexpr uint16_t explosion46x46Width  = 46;
+constexpr uint16_t explosion46x46Height = 46;
+constexpr uint8_t  explosion46x46Frames = 7;
+
+constexpr uint24_t explosion92x92 = 0x004A76;
+constexpr uint16_t explosion92x92Width  = 92;
+constexpr uint16_t explosion92x92Height = 92;
+constexpr uint8_t  explosion92x92Frames = 7;
+
+constexpr uint24_t explosion110x110 = 0x0086DA;
+constexpr uint16_t explosion110x110Width  = 110;
+constexpr uint16_t explosion110x110Height = 110;
+constexpr uint8_t  explosion110x110Frames = 7;
 
