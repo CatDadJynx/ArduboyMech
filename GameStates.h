@@ -77,15 +77,17 @@ void loop() {
       if (arduboy.justPressed(A_BUTTON)) {
         //currentState = NEW_GAME;
         player.mechType = LIGHT;
+        currentState = INIT_GAME;
       }
       if (arduboy.justPressed(B_BUTTON)) {
         //currentState = LOAD_GAME;
         player.mechType = MEDIUM;
+        currentState = INIT_GAME;
       }
       if (arduboy.justPressed(A_BUTTON) && arduboy.justPressed(B_BUTTON)) {
         player.mechType = HEAVY;
+        currentState = INIT_GAME;
       }
-      currentState = INIT_GAME;
       break;
     case INIT_GAME:
       if (player.mechType == LIGHT) {
