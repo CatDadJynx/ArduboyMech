@@ -12,6 +12,9 @@ image_t missionMenu128x64 = "Sprites/MissionMenu_128x64.png"
 image_t hangerMenu128x64 = "Sprites/HangerMenu_128x64.png"
 image_t customizationMenu128x64 = "Sprites/CustomizationMenu_128x64.png"
 
+image_t leftArrowSmall = "Sprites/leftArrowSmall_7x13.png"
+image_t rightArrowSmall = "Sprites/rightArrowSmall_7x13.png"
+
 image_t mothraCockpit128x64 = "Sprites/mothraCockpit_128x64.png"
 image_t battleCatCockpit128x64 = "Sprites/battleCatCockpit_128x64.png"
 image_t thorHammerCockpit128x64 = "Sprites/thorHammerCockpit_128x64.png"
