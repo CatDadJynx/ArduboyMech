@@ -1,3 +1,8 @@
+// TODO: 
+// - Add multiple mech slots
+// - Add multiple weapon slots
+// - Enemy AI (movement, attacking)
+
 #include <Arduboy2.h>
 #include <ArduboyFX.h>
 #include <FixedPoints.h>
@@ -19,7 +24,6 @@ const uint8_t cellSize = 4;
 
 const uint8_t gridX = worldWidth / cellSize;   // Number of cells along the X-axis
 const uint8_t gridY = worldHeight / cellSize;  // Number of cells along the Y-axis
-
 
 // Define the Object struct
 struct Object {
@@ -213,7 +217,7 @@ void populateMissionList() {
 }
 
 void initNewGame() {
-  player.dayCount = 21;
+  player.dayCount = 1;
   player.money = 20000;
   player.mechType = MechType::Battle_Cat;
   player.playerMechStats = playerBattleCatStats;
@@ -303,10 +307,10 @@ const MenuItem hangerMenuItems[] PROGMEM = {
 Menu hangerMenu = { hangerMenuItems, 4, 0 };
 
 const MenuItem customizationMenuItems[] PROGMEM = {
-  { 61, 1, 33, 17 },
-  { 61, 18, 33, 17 },
-  { 94, 1, 33, 17 },
-  { 94, 18, 33, 17 }
+  { 79, 1, 33, 15 },
+  { 79, 16, 33, 15 },
+  { 79, 31, 33, 15 },
+  { 79, 46, 33, 15 }
 };
 Menu customizationMenu = { customizationMenuItems, 4, 0 };
 
@@ -427,25 +431,26 @@ void updateMissionMenu() {
   updateMenu(missionMenu);
 
   // Directly print the label for enemies
-  //font4x6.setCursor(38, 10);  // Adjust position as needed
-  //font4x6.print(F("Enemies: "));
-  printString(font4x6, enemiesStr, 38, 10);
+  font4x6.setCursor(38, 10);  // Adjust position as needed
+  font4x6.print(F("Enemies: "));
+  //printString(font4x6, enemiesStr, 38, 10);
 
-  //font4x6.setCursor(38, 20);  // Adjust position as needed
+  //font4x6.setCursor(38, 10);  // Adjust position as needed
   // Directly print the number of enemies without using a buffer
-  //font4x6.print(availableMissions[selectedMissionIndex].numEnemies);
-  printString(font4x6, availableMissions[selectedMissionIndex].numEnemies, 38, 16);
+  font4x6.print(availableMissions[selectedMissionIndex].numEnemies);
+  //printString(font4x6, availableMissions[selectedMissionIndex].numEnemies, 38, 16);
 
   // For enemy types, print directly in a loop
   for (int i = 0; i < availableMissions[selectedMissionIndex].numEnemies; i++) {
     // Instead of storing type names in a buffer, print directly
     switch (availableMissions[selectedMissionIndex].mechs[i]) {
       case MechType::Mothra:
-        //font4x6.print(F("\n Mothra"));
         //printString(font4x6, mothraStr, 38, 25);
+        font4x6.print(F("\n Mothra"));
         break;
       case MechType::Battle_Cat:
-        //font4x6.print(F("\n Battle_Cat"));
+        //printString(font4x6, battleCatStr, 38, 25);
+        font4x6.print(F("\n BattleCat"));
         break;
       // Add cases for other mech types as needed
     }
@@ -511,6 +516,22 @@ bool adjustingStat = false;
 
 void updateCustomizationMenu() {
   FX::drawBitmap(0, 0, customizationMenu128x64, 0, dbmMasked);
+  font4x6.setCursor(2, 1);
+  font4x6.print("Armor     ");
+  font4x6.print(player.playerMechStats.armor);
+  font4x6.setCursor(2, 8);
+  font4x6.print("Weight    ");
+  font4x6.print(player.playerMechStats.weight);
+  font4x6.setCursor(2, 15);
+  font4x6.print("Heatsink  ");
+  font4x6.print(player.playerMechStats.heat);
+  font4x6.setCursor(2, 22);
+  font4x6.print("MoveSpeed ");
+  font4x6.print(static_cast<float>(player.playerMechStats.moveSpeed));
+  font4x6.setCursor(2, 36);
+  font4x6.print("Credits  ");
+  font4x6.print(static_cast<long>(player.money));
+
   if (!adjustingStat) {
     updateMenu(customizationMenu);
   }
@@ -529,11 +550,13 @@ void updateCustomizationMenu() {
     switch (customizationMenu.currentSelection) {
       case 0:  // Armor up/down (weight up/down, speed down/up)
         if (arduboy.justPressed(RIGHT_BUTTON) && player.playerMechStats.armor < 120) {
+          FX::drawBitmap(112, 1, rightArrowSmall, 0, dbmMasked);
           player.playerMechStats.armor++;
           player.playerMechStats.weight++;
           player.playerMechStats.moveSpeed -= 0.01;
           player.money -= 100;
         } else if (arduboy.justPressed(LEFT_BUTTON) && player.playerMechStats.armor > 1) {
+          FX::drawBitmap(72, 1, leftArrowSmall, 0, dbmMasked);
           player.playerMechStats.armor--;
           player.playerMechStats.weight--;
           player.playerMechStats.moveSpeed += 0.01;
@@ -545,11 +568,13 @@ void updateCustomizationMenu() {
         break;
       case 2:  // Heatsink up/down (weight up/down, speed down/up)
         if (arduboy.justPressed(RIGHT_BUTTON) && player.playerMechStats.heat < 100) {
+          FX::drawBitmap(112, 32, rightArrowSmall, 0, dbmMasked);
           player.playerMechStats.heat++;
           player.playerMechStats.weight++;
           player.playerMechStats.moveSpeed -= 0.01;
           player.money -= 100;
         } else if (arduboy.justPressed(LEFT_BUTTON) && player.playerMechStats.heat > 1) {
+          FX::drawBitmap(72, 32, leftArrowSmall, 0, dbmMasked);
           player.playerMechStats.heat--;
           player.playerMechStats.weight--;
           player.playerMechStats.moveSpeed += 0.01;
@@ -959,7 +984,7 @@ void hitEnemy(uint8_t bulletEnemyIndex) {
 }
 
 void handleInput() {
-  if (arduboy.justPressed(A_BUTTON)) {
+  if (arduboy.justPressed(A_BUTTON) && arduboy.justPressed(B_BUTTON)) {
     minimapEnabled = !minimapEnabled;
   }
   if (arduboy.pressed(B_BUTTON)) {
