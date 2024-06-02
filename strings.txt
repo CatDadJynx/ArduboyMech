@@ -1,5 +1,0 @@
-namespace MechNames {
-mothra  = "Mothra"
-battleCat = "BattleCat"
-}
-
