@@ -1,6 +1,3 @@
-savesection     //4K block save section. Any data below will be stored in save data area
-uint16_t  0xFFFF //game state end marker / start of unused space
-
 string mothraStr  = "Mothra"
 string battleCatStr = "BattleCat"
 string enemiesStr = "Enemies"
@@ -46,6 +43,9 @@ image_t explosion23x23 = "Sprites/explosion_23x23.png"
 image_t explosion46x46 = "Sprites/explosion_46x46.png"
 image_t explosion92x92 = "Sprites/explosion_92x92.png"
 image_t explosion110x110 = "Sprites/explosion_110x110.png"
+
+savesection     //4K block save section. Any data below will be stored in save data area
+uint16_t  0xFFFF //game state end marker / start of unused space
 
 
 
