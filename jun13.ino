@@ -164,16 +164,12 @@ void updateEnemyMovement(Enemy& enemy) {
     SQ7x8 dx = player.x - enemy.x;
     SQ7x8 dy = player.y - enemy.y;
 
-    // Only update movement if the enemy is far enough from the player to avoid jitter
-    const SQ7x8 moveThreshold = 0.2;  // Adjust this value to reduce jitter
-    if (abs(dx) > moveThreshold || abs(dy) > moveThreshold) {
-      if (abs(dx) > abs(dy)) {
-        if (dx > 0) enemy.x += enemy.moveSpeed;
-        else enemy.x -= enemy.moveSpeed;
-      } else {
-        if (dy > 0) enemy.y += enemy.moveSpeed;
-        else enemy.y -= enemy.moveSpeed;
-      }
+    if (abs(dx) > abs(dy)) {
+      if (dx > 0) enemy.x += enemy.moveSpeed;
+      else enemy.x -= enemy.moveSpeed;
+    } else {
+      if (dy > 0) enemy.y += enemy.moveSpeed;
+      else enemy.y -= enemy.moveSpeed;
     }
   }
 }
@@ -205,6 +201,8 @@ struct Mission {
   uint8_t activeEnemies;
   MechType mechs[maxEnemies];  // Assuming a max of 3 mechs per mission
 };
+
+// Existing code...
 
 const uint8_t maxMissions = 3;  // Maximum number of missions available at any time
 Mission availableMissions[maxMissions];
@@ -745,125 +743,210 @@ uint8_t calculateSize(SQ7x8 distance, uint8_t minSize, uint8_t maxSize, SQ7x8 mi
 
 int8_t currentEnemyIndex = -1;  // Global index for the currently rendered enemy
 
-struct Sprite {
-    uint24_t bitmap;
-    uint8_t width;
-    uint8_t height;
-    uint8_t currentFrame;
-    uint8_t maxFrames;
-};
+void drawEnemy(uint8_t x, uint8_t y) {
+  // Draw the enemy with the calculated size
+  arduboy.drawRect(x - enemies[currentEnemyIndex].scaledSize / 2, y - enemies[currentEnemyIndex].scaledSize / 2, enemies[currentEnemyIndex].scaledSize, enemies[currentEnemyIndex].scaledSize, WHITE);
 
-// Function to draw and animate a sprite
-void drawSprite(uint8_t x, uint8_t y, Sprite& sprite, bool animate = true) {
-    if (animate && arduboy.everyXFrames(15)) {
-        sprite.currentFrame = (sprite.currentFrame + 1) % sprite.maxFrames;
+  // Choose a sprite based on the enemy's MechType and size
+  uint24_t sprite;
+  uint8_t spriteWidth, spriteHeight;
+  //uint8_t frame = 0;
+
+  switch (enemies[currentEnemyIndex].mechType) {
+    case MechType::Mothra:
+      // Select Mothra sprites based on size
+      if (enemies[currentEnemyIndex].scaledSize < 8) {
+        sprite = enemy2x3;
+        spriteWidth = enemy2x3Width;
+        spriteHeight = enemy2x3Height;
+        enemies[currentEnemyIndex].maxFrames = 0;
+      } else if (enemies[currentEnemyIndex].scaledSize < 15) {
+        sprite = mech6x8;
+        spriteWidth = mech6x8Width;
+        spriteHeight = mech6x8Height;
+        enemies[currentEnemyIndex].maxFrames = 0;
+      } else if (enemies[currentEnemyIndex].scaledSize < 20) {
+        sprite = Mothra8x11;
+        spriteWidth = Mothra8x11Width;
+        spriteHeight = Mothra8x11Height;
+        enemies[currentEnemyIndex].maxFrames = 0;
+      } else if (enemies[currentEnemyIndex].scaledSize < 30) {
+        sprite = Mothra16x21;
+        spriteWidth = Mothra16x21Width;
+        spriteHeight = Mothra16x21Height;
+        enemies[currentEnemyIndex].maxFrames = Mothra16x21Frames;
+      } else if (enemies[currentEnemyIndex].scaledSize < 40) {
+        sprite = Mothra30x40;
+        spriteWidth = Mothra30x40Width;
+        spriteHeight = Mothra30x40Height;
+        enemies[currentEnemyIndex].maxFrames = Mothra30x40Frames;
+      } else if (enemies[currentEnemyIndex].scaledSize < 60) {
+        sprite = Mothra50x67;
+        spriteWidth = Mothra50x67Width;
+        spriteHeight = Mothra50x67Height;
+        enemies[currentEnemyIndex].maxFrames = Mothra50x67Frames;
+      } else if (enemies[currentEnemyIndex].scaledSize < 80) {
+        sprite = Mothra70x94;
+        spriteWidth = Mothra70x94Width;
+        spriteHeight = Mothra70x94Height;
+        enemies[currentEnemyIndex].maxFrames = 0;
+      } else if (enemies[currentEnemyIndex].scaledSize < 100) {
+        sprite = Mothra90x121;
+        spriteWidth = Mothra90x121Width;
+        spriteHeight = Mothra90x121Height;
+        enemies[currentEnemyIndex].maxFrames = 0;
+      } else {
+        sprite = Mothra110x148;
+        spriteWidth = Mothra110x148Width;
+        spriteHeight = Mothra110x148Height;
+        enemies[currentEnemyIndex].maxFrames = 0;
+      }
+      break;
+    case MechType::Battle_Cat:
+      // Select Battle_Cat sprites based on size
+      // Use the same sprite sizes as for Mothra for now, adjust as needed
+      if (enemies[currentEnemyIndex].scaledSize < 8) {
+        sprite = enemy2x3;
+        spriteWidth = enemy2x3Width;
+        spriteHeight = enemy2x3Height;
+      } else if (enemies[currentEnemyIndex].scaledSize < 15) {
+        sprite = mech6x8;
+        spriteWidth = mech6x8Width;
+        spriteHeight = mech6x8Height;
+      } else if (enemies[currentEnemyIndex].scaledSize < 20) {
+        sprite = Battle_Cat8x11;
+        spriteWidth = Battle_Cat8x11_width;
+        spriteHeight = Battle_Cat8x11_height;
+      } else if (enemies[currentEnemyIndex].scaledSize < 30) {
+        sprite = Battle_Cat16x21;
+        spriteWidth = Battle_Cat16x21_width;
+        spriteHeight = Battle_Cat16x21_height;
+      } else if (enemies[currentEnemyIndex].scaledSize < 40) {
+        sprite = Battle_Cat30x40;
+        spriteWidth = Battle_Cat30x40_width;
+        spriteHeight = Battle_Cat30x40_height;
+      } else if (enemies[currentEnemyIndex].scaledSize < 60) {
+        sprite = Battle_Cat50x67;
+        spriteWidth = Battle_Cat50x67_width;
+        spriteHeight = Battle_Cat50x67_height;
+      } else if (enemies[currentEnemyIndex].scaledSize < 80) {
+        sprite = Battle_Cat70x94;
+        spriteWidth = Battle_Cat70x94_width;
+        spriteHeight = Battle_Cat70x94_height;
+      } else if (enemies[currentEnemyIndex].scaledSize < 100) {
+        sprite = Battle_Cat90x121;
+        spriteWidth = Battle_Cat90x121_width;
+        spriteHeight = Battle_Cat90x121_height;
+      } else {
+        sprite = Battle_Cat110x148;
+        spriteWidth = Battle_Cat110x148_width;
+        spriteHeight = Battle_Cat110x148_height;
+      }
+      break;
     }
-    FX::drawBitmap(x - sprite.width / 2, y - sprite.height / 2, sprite.bitmap, sprite.currentFrame, dbmMasked);
+
+    if (arduboy.everyXFrames(3)) {
+      // If current frame is greater than max, reset to 0 and exit (to loop animation)
+      /*if (enemies[currentEnemyIndex].currentFrame > enemies[currentEnemyIndex].maxFrames) {
+        enemies[currentEnemyIndex].currentFrame = 0;
+        return;
+      }*/
+
+      if (enemies[currentEnemyIndex].currentFrame >= enemies[currentEnemyIndex].maxFrames) {
+        enemies[currentEnemyIndex].currentFrame = 0;
+        return;
+      }
+      // If crrent frame is less than max, increment frame
+      if (enemies[currentEnemyIndex].currentFrame < enemies[currentEnemyIndex].maxFrames){
+        ++enemies[currentEnemyIndex].currentFrame;
+      }
+    }
+    FX::drawBitmap(x - spriteWidth / 2, y - spriteWidth / 2, sprite, enemies[currentEnemyIndex].currentFrame, dbmMasked);
 }
 
-// Function to handle explosion animation
-void updateAndDrawExplosion(uint8_t x, uint8_t y, Enemy& enemy) {
-    Sprite explosion;
-    if (enemy.scaledSize < 23) {
-        explosion = {explosion23x23, 23, 23, enemy.currentFrame, explosion23x23Frames};
-    } else if (enemy.scaledSize < 46) {
-        explosion = {explosion46x46, 46, 46, enemy.currentFrame, explosion46x46Frames};
-    } else if (enemy.scaledSize < 92) {
-        explosion = {explosion92x92, 92, 92, enemy.currentFrame, explosion92x92Frames};
-    } else {
-        explosion = {explosion110x110, 110, 110, enemy.currentFrame, explosion110x110Frames};
-    }
+void updateAndDrawExplosion(uint8_t x, uint8_t y) {
 
-    drawSprite(x, y, explosion);
-    if (arduboy.everyXFrames(15)) {
-        if (enemy.currentFrame > enemy.maxFrames) {
-            --currentMission.activeEnemies;
-            enemy.state = EnemyState::Inactive;
-        }
-        ++enemy.currentFrame;
-    }
-}
+  uint24_t sprite;
+  uint8_t spriteSize;
+  //Reset enemy's current animation frame?
+  //enemies[currentEnemyIndex].currentFrame = 0;
 
-void drawMech(uint8_t x, uint8_t y, Enemy& enemy) {
-    Sprite mech;
-    switch (enemy.mechType) {
-        case MechType::Mothra:
-            if (enemy.scaledSize < 8) {
-                mech = {enemy2x3, enemy2x3Width, enemy2x3Height, 0, 1};
-            } else if (enemy.scaledSize < 15) {
-                mech = {mech6x8, mech6x8Width, mech6x8Height, 0, 1};
-            } else if (enemy.scaledSize < 20) {
-                mech = {Mothra8x11, Mothra8x11Width, Mothra8x11Height, 0, 1};
-            } else if (enemy.scaledSize < 30) {
-                mech = {Mothra16x21, Mothra16x21Width, Mothra16x21Height, 0, 1};
-            } else if (enemy.scaledSize < 40) {
-                mech = {Mothra30x40, Mothra30x40Width, Mothra30x40Height, 0, 1};
-            } else if (enemy.scaledSize < 60) {
-                mech = {Mothra50x67, Mothra50x67Width, Mothra50x67Height, 0, 1};
-            } else if (enemy.scaledSize < 80) {
-                mech = {Mothra70x94, Mothra70x94Width, Mothra70x94Height, 0, 1};
-            } else if (enemy.scaledSize < 100) {
-                mech = {Mothra90x121, Mothra90x121Width, Mothra90x121Height, 0, 1};
-            } else {
-                mech = {Mothra110x148, Mothra110x148Width, Mothra110x148Height, 0, 1};
-            }
-            break;
-        case MechType::Battle_Cat:
-            if (enemy.scaledSize < 8) {
-                mech = {enemy2x3, enemy2x3Width, enemy2x3Height, 0, 1};
-            } else if (enemy.scaledSize < 15) {
-                mech = {mech6x8, mech6x8Width, mech6x8Height, 0, 1};
-            } else if (enemy.scaledSize < 20) {
-                mech = {Battle_Cat8x11, Battle_Cat8x11_width, Battle_Cat8x11_height, 0, 1};
-            } else if (enemy.scaledSize < 30) {
-                mech = {Battle_Cat16x21, Battle_Cat16x21_width, Battle_Cat16x21_height, 0, 1};
-            } else if (enemy.scaledSize < 40) {
-                mech = {Battle_Cat30x40, Battle_Cat30x40_width, Battle_Cat30x40_height, 0, 1};
-            } else if (enemy.scaledSize < 60) {
-                mech = {Battle_Cat50x67, Battle_Cat50x67_width, Battle_Cat50x67_height, 0, 1};
-            } else if (enemy.scaledSize < 80) {
-                mech = {Battle_Cat70x94, Battle_Cat70x94_width, Battle_Cat70x94_height, 0, 1};
-            } else if (enemy.scaledSize < 100) {
-                mech = {Battle_Cat90x121, Battle_Cat90x121_width, Battle_Cat90x121_height, 0, 1};
-            } else {
-                mech = {Battle_Cat110x148, Battle_Cat110x148_width, Battle_Cat110x148_height, 0, 1};
-            }
-            break;
-    }
-    drawSprite(x, y, mech);
-}
+  if (enemies[currentEnemyIndex].scaledSize < 23) {
+    sprite = explosion23x23;
+    spriteSize = 23;
+    enemies[currentEnemyIndex].maxFrames = explosion23x23Frames;
+  } else if (enemies[currentEnemyIndex].scaledSize < 46) {
+    sprite = explosion46x46;
+    spriteSize = 46;
+    enemies[currentEnemyIndex].maxFrames = explosion46x46Frames;
+  } else if (enemies[currentEnemyIndex].scaledSize < 92) {
+    sprite = explosion92x92;
+    spriteSize = 92;
+    enemies[currentEnemyIndex].maxFrames = explosion92x92Frames;
+  } else {
+    sprite = explosion110x110;
+    spriteSize = 110;
+    enemies[currentEnemyIndex].maxFrames = explosion110x110Frames;
+  }
 
-void animateAndRenderEnemies() {
-    const uint8_t minEnemySize = 2;
-    const uint8_t maxEnemySize = 120;
-    const SQ7x8 minEnemyDistance = 0.5;
-    const SQ7x8 maxEnemyDistance = 16;
-    for (uint8_t i = 0; i < currentMission.numEnemies; ++i) {
-        if (enemies[i].state != EnemyState::Inactive) {
-            currentEnemyIndex = i;
-            DrawParameters drawParameters;
-            if (to3DView(enemies[currentEnemyIndex], drawParameters)) {
-                enemies[currentEnemyIndex].scaledSize = calculateSize(drawParameters.distance, minEnemySize, maxEnemySize, minEnemyDistance, maxEnemyDistance);
-                if (enemies[currentEnemyIndex].state == EnemyState::Active) {
-                    drawMech(drawParameters.x, drawParameters.y, enemies[currentEnemyIndex]);
-                } else if (enemies[i].state == EnemyState::Exploding) {
-                    updateAndDrawExplosion(drawParameters.x, drawParameters.y, enemies[currentEnemyIndex]);
-                }
-            }
-        }
+  // Increment frame in controlled intervals
+  if (arduboy.everyXFrames(10)) {
+    // If current frame is greater than max frames
+    if (enemies[currentEnemyIndex].currentFrame > enemies[currentEnemyIndex].maxFrames) {
+      //Reset counter to 0?
+      //enemies[currentEnemyIndex].currentFrame = 0;
+
+      //Decrement current mission's active enemies then change enemy's state to inactive
+      --currentMission.activeEnemies;
+      enemies[currentEnemyIndex].state = EnemyState::Inactive;
+      return; // Stop further processing if the enemy is now inactive
     }
+    ++enemies[currentEnemyIndex].currentFrame;
+  }
+
+  // Draw the current frame of the explosion every frame
+  FX::drawBitmap(x - spriteSize / 2, y - spriteSize / 2, sprite, enemies[currentEnemyIndex].currentFrame, dbmMasked);
 }
 
 void updateEnemies() {
   for (uint8_t i = 0; i < maxEnemies; ++i) {
     if (enemies[i].state == EnemyState::Active) {
-      updateEnemyMovement(enemies[i]);
+      //updateEnemyMovement(enemies[i]);
       updateEnemyAttack(enemies[i]);
     }
   }
 }
 
+void updateAndRenderEnemies() {
+  const uint8_t minEnemySize = 2;
+  const uint8_t maxEnemySize = 120;
+  const SQ7x8 minEnemyDistance = 0.5;
+  const SQ7x8 maxEnemyDistance = 16;
+  // Move this whole part to its own updateDrawEnemies function:
+  for (uint8_t i = 0; i < currentMission.numEnemies; ++i) {
+    if (enemies[i].state != EnemyState::Inactive) {
 
+      // Update current enemy index
+      currentEnemyIndex = i;
+
+      // Prepare an empty DrawParameters object
+      DrawParameters drawParameters;
+
+      // Determine whether the object should be drawn
+      if (to3DView(enemies[currentEnemyIndex], drawParameters)) {
+        // If the object is onscreen, update scaled size and draw it
+        if (currentEnemyIndex >= 0 && currentEnemyIndex < maxEnemies) {
+          enemies[currentEnemyIndex].scaledSize = calculateSize(drawParameters.distance, minEnemySize, maxEnemySize, minEnemyDistance, maxEnemyDistance);
+        }
+        if (enemies[currentEnemyIndex].state == EnemyState::Active) {
+          drawEnemy(drawParameters.x, drawParameters.y);
+        } else if (enemies[i].state == EnemyState::Exploding) {
+          updateAndDrawExplosion(drawParameters.x, drawParameters.y);
+        }
+      }
+    }
+  }
+}
 
 void drawMinimap() {
   arduboy.fillRect(0, 0, gridX * cellSize, gridY * cellSize, BLACK);
@@ -1121,7 +1204,7 @@ void loop() {
       }
 
       updateEnemies();
-      animateAndRenderEnemies();
+      updateAndRenderEnemies();
 
       // Bullet handling:
       updateBullets();               // Update bullet positions
