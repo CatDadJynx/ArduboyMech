@@ -1,0 +1,12 @@
+namespace MechNames_white {
+uint24_t  MechNames[] = {mothra, battleCat, thorHammer};
+} namespace_end
+namespace Stats_white {
+uint24_t  Stats[] = {dayStr, armorStr, weightStr, heatSinkStr, moveSpeedStr, creditsStr, overheatStr};
+} namespace_end
+namespace Utility_white {
+uint24_t  Utility[] = {noSaveDataStr, pressAStr, AorBStr, AyesBnoStr, enemiesStr, notEnoughMoneyStr, gameOverStr};
+} namespace_end
+namespace Weapons_white {
+uint24_t  Weapons[] = {costStr, dmgStr, heatStr, weaponSlotsStr, availableWeaponsStr, sellThisWeaponStr, weaponsListStr, lightMGStr, heavyMGStr, rocketStr, medRocketStr, laserStr, emptyStr};
+} namespace_end
