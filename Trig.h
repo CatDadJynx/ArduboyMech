@@ -40,3 +40,4 @@ AngleResult Cos(uint8_t brads)
 		default: return 0;
 	}
 }
+
