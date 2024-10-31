@@ -1,6 +1,98 @@
-string mothraStr  = "Mothra"
-string battleCatStr = "BattleCat"
-string enemiesStr = "Enemies"
+// weight 0, heatSink 1, maxHeatSink 2, armor 3, maxArmor 4, rotationSpeed 5
+uint8_t playerMothraStats[] = { 100, 100, 115, 100, 150, 3}
+uint8_t playerBattleCatStats[] = {115, 115, 125, 115, 175, 2}
+uint8_t playerThorHammerStats[] = {125, 120, 135, 125, 200, 1}
+
+// Define available weapons for purchase
+uint8_t availableWeapons[] = {
+  //Type, damage, cost, weight, heat usage, ammo
+  { 1, 1, 100, 80, 30, 200 },        // Light MG
+  { 2, 2, 150, 90, 40, 200 },  // Heavy MG
+  { 3, 4, 200, 100, 50, 60 },       // Light Rockets
+  { 5, 6, 250, 110, 60, 60 }, // Medium Rockets
+  { 5, 5, 225, 100, 100, 0 }          // Laser
+  // Add more weapons as needed
+};
+
+uint8_t mainMenuItems[] = {
+  // x, y, height, width
+  { 10, 18, 26, 26 },  // First menu item
+  { 51, 18, 26, 26 },  // Second menu item
+  { 93, 18, 26, 26 }   // Third menu item
+};
+
+uint8_t saveLoadMenuItems[] = {
+  { 20, 28, 23, 9 },
+  { 84, 28, 23, 9 }
+};
+
+
+uint8_t missionMenuItems[] = {
+  { 1, 1, 33, 17 },
+  { 1, 18, 33, 17 },
+  { 1, 35, 33, 17 }
+};
+
+uint8_t hangerMenuItems[] = {
+  { 61, 0, 33, 17 },   // Repair/reload
+  { 61, 17, 33, 17 },  // Customize menu
+  { 94, 0, 33, 17 },   // Buy Mech
+  { 94, 17, 33, 17 },  // Sell Mech
+  { 61, 34, 33, 17 },  // Cycle mech left arrow
+  { 94, 34, 33, 17 }   // Cycle mech right arrow
+};
+
+uint8_t customizationMenuItems[] = {
+  { 79, 1, 33, 15 },   // Armor
+  { 79, 16, 33, 15 },  // Buy/Sell Weapons
+  { 79, 31, 33, 15 },  // Heatsink
+  { 79, 46, 33, 15 }   // Engine
+};
+
+// To generate sprite of text: (from the base folder) textImageGeneration.py --font Fontbitmaps/Font_5x6.png --input strings.txt --output_dir Fontbitmaps/generated_4x6
+
+image_t noSaveDataStr = "Fontbitmaps\generated_4x6\noSaveDataStr_white_50x6.png"
+image_t dayStr = "Fontbitmaps\generated_4x6\dayStr_white_20x6.png"
+image_t enemiesStr = "Fontbitmaps\generated_4x6\enemiesStr_white_40x6.png"
+image_t costStr = "Fontbitmaps\generated_4x6\costStr_white_25x6.png"
+image_t dmgStr = "Fontbitmaps\generated_4x6\dmgStr_white_20x6.png"
+image_t pressAStr = "Fontbitmaps\generated_4x6\pressAStr_white_30x6.png"
+image_t notEnoughMoneyStr = "Fontbitmaps\generated_4x6\notEnoughMoneyStr_white_75x6.png"
+image_t AorBStr = "Fontbitmaps\generated_4x6\AorBStr_white_45x6.png"
+image_t AyesBnoStr = "Fontbitmaps\generated_4x6\AyesBnoStr_white_45x6.png"
+image_t sellThisWeaponStr = "Fontbitmaps\generated_4x6\sellThisWeaponStr_white_75x6.png"
+image_t mothraStr  = "Fontbitmaps\generated_4x6\mothra_white_30x6.png"
+image_t battleCatStr = "Fontbitmaps\generated_4x6\battleCat_white_45x6.png"
+image_t thorHammerStr = "Fontbitmaps\generated_4x6\thorHammer_white_50x6.png"
+
+image_t armorStr = "Fontbitmaps\generated_4x6\armorStr_white_25x6.png"
+image_t weightStr = "Fontbitmaps\generated_4x6\weightStr_white_30x6.png"
+image_t heatSinkStr = "Fontbitmaps\generated_4x6\heatSinkStr_white_40x6.png"
+image_t heatStr = "Fontbitmaps\generated_4x6\heatStr_white_25x6.png"
+image_t moveSpeedStr = "Fontbitmaps\generated_4x6\moveSpeed_white_45x6.png"
+image_t creditsStr = "Fontbitmaps\generated_4x6\creditsStr_white_35x6.png"
+
+image_t overheatStr = "Fontbitmaps\generated_4x6\overheatStr_white_40x6.png"
+image_t gameOverStr = "Fontbitmaps\generated_4x6\gameOverStr_white_40x6.png"
+
+image_t weaponSlotsStr = "Fontbitmaps\generated_4x6\weaponSlotsStr_white_60x6.png"
+image_t availableWeaponsStr = "Fontbitmaps\generated_4x6\availableWeaponsStr_white_85x6.png"
+
+image_t weaponsListStr = "Fontbitmaps\generated_4x6\weaponsListStr_white_55x6.png"
+image_t lightMGStr = "Fontbitmaps\generated_4x6\lightMGStr_white_30x6.png"
+image_t heavyMGStr = "Fontbitmaps\generated_4x6\heavyMGStr_white_35x6.png"
+image_t rocketStr = "Fontbitmaps\generated_4x6\rocketStr_white_30x6.png"
+image_t medRocketStr = "Fontbitmaps\generated_4x6\medRocketStr_white_45x6.png"
+image_t laserStr = "Fontbitmaps\generated_4x6\laserStr_white_25x6.png"
+image_t emptyStr = "Fontbitmaps\generated_4x6\emptyStr_white_25x6.png"
+
+image_t font_4x6 = "Filmote4x6.png"
+image_t font_3x5 = "Filmote3x5.png"
+
+image_t availableWeaponsMenu90x60 = "Sprites/availableWeaponsMenu_90x60.png"
+image_t weaponsStatsMenu50x40 = "Sprites/weaponsStatsMenu_50x40.png"
+
+image_t notEnoughMoney86x20 = "Sprites/notEnoughMoney_86x20.png"
 
 image_t titleScreen128x64 = "Sprites/titleScreen_128x64.png"
 image_t mainMenu128x64 = "Sprites/MainMenu_128x64.png"
@@ -52,18 +144,30 @@ image_t explosion46x46 = "Sprites/explosion_46x46.png"
 image_t explosion92x92 = "Sprites/explosion_92x92.png"
 image_t explosion110x110 = "Sprites/explosion_110x110.png"
 
+
+
 savesection     //4K block save section. Any data below will be stored in save data area
+
 uint16_t  0xFFFF //game state end marker / start of unused space
 
 
 
+// Definitions of MechStats for different mech types
+/*uint8_t playerMothraStats [] = {
+  100, 100, 115, 100, 150, 3
+};
+
+uint8_t playerBattleCatStats [] = {
+  115, 115, 125, 115, 175, 2
+};
+
+uint8_t playerThorHammerStats[] = {
+  125, 120, 135, 125, 200, 1
+};*/
 
 /*
 savesection     //4K block save section. Any data below will be stored in save data area
-uint8_t 100//health
-uint8_t 2//status
-int8_t 3//movementSpeed //SQ7x8 movementSpeed;?
-uint8_t 3//rotationSpeed
+
 uint16_t 0xFFFF //end of save data / beginning of free space
 	         //not included in the save data length
 */
@@ -78,15 +182,15 @@ uint16_t 0xFFFF //end of save data / beginning of free space
  *      savesection
  *      uint16_t 30     //size of save data excluding length bytes
  *      uint16_t 50000  //high scores
- *      string "KVN"
+ *      image_t "KVN"
  *      uint16_t 40000      
- *      string "MRB"
+ *      image_t "MRB"
  *      uint16_t 30000
- *      string "FLM"
+ *      image_t "FLM"
  *      uint16_t 20000      
- *      string "VMP"
+ *      image_t "VMP"
  *      uint16_t 10000      
- *      string "ADB"
+ *      image_t "ADB"
  *      uint16_t 0xFFFF //end of save data / beginning of free space
  *                      //not included in the save data length
  * 
