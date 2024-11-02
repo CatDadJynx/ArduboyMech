@@ -873,7 +873,7 @@ const MechData mechData[] = {
 };
 
 // Function to draw the mech
-void drawMech(MechType type) {
+void drawPlayerMech(MechType type) {
   const MechData& data = mechData[static_cast<uint8_t>(type)];
   FX::drawBitmap(4, 4, data.bitmap, 0, dbmMasked);
   font4x6.setCursor(42, 4);
@@ -885,7 +885,7 @@ void updateHangerMenu() {
   FX::drawBitmap(0, 0, hangerMenu128x64, 0, dbmMasked);
 
   // Draw the current mech
-  drawMech(player.mechs[player.currentMech].type);
+  drawPlayerMech(player.mechs[player.currentMech].type);
 
   if (!inRepairMenu && !notEnoughMoneyMessage) {
     updateMenu(hangerMenu);
