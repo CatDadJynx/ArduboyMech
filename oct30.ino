@@ -231,6 +231,131 @@ void initializeMech(Mech &mech) {
   initializeAmmo(mech); // Initialize ammo for this specific mech
 }
 
+/*
+const uint8_t MAX_ENEMIES = 3;
+const SQ15x16 approachDistSq = 144;    // 12 squared
+const SQ7x8 circleDistSq = 16;        // 4 squared
+const uint8_t flashDuration = 5;
+
+enum EnemyState : uint8_t {
+  Active,
+  Inactive,
+  Exploding
+};
+
+struct Enemy : public Object {
+  EnemyState state = EnemyState::Inactive;
+  uint8_t scaledSize;
+  SQ7x8 moveSpeed;
+  uint16_t health;
+  uint8_t damage;
+  MechType mechType;
+  uint8_t currentFrame;
+  uint8_t maxFrames;
+  uint8_t hitFlashTimer;
+  bool circlingAssigned;
+  bool circlingDirection;
+  uint8_t wanderCounter;
+  uint8_t wanderDirection;
+};
+
+Enemy enemies[MAX_ENEMIES];
+uint8_t flashTimer;
+
+void updateEnemies() {
+  // Handle flash timer for display inversion
+  if (flashTimer > 0) {
+    FX::enableOLED();
+    arduboy.invert(true);
+    FX::disableOLED();
+    flashTimer--;
+  } else {
+    FX::enableOLED();
+    arduboy.invert(false);
+    FX::disableOLED();
+  }
+
+  for (uint8_t i = 0; i < MAX_ENEMIES; ++i) {
+    Enemy &enemy = enemies[i];
+
+    if (enemy.state != Active) continue;
+
+    // Compute the distance between the enemy and the player with wrapping
+    SQ7x8 dx = wrapDistance(player.x, enemy.x, worldWidth);
+    SQ7x8 dy = wrapDistance(player.y, enemy.y, worldHeight);
+    SQ15x16 distSq = (SQ15x16)dx * dx + (SQ15x16)dy * dy;
+    //Serial.println((float)(distSq));
+    if (distSq <= circleDistSq) {
+      // **Close Distance** - Circling behavior
+
+      // Attack chance (10% chance)
+      if (random(10) == 0) {
+        Mech &currentMech = player.mechs[player.currentMech];
+        if (currentMech.health) {
+          flashTimer = flashDuration;
+          // Simplified health deduction
+          if (currentMech.health > enemy.damage) {
+            currentMech.health -= enemy.damage;
+          } else {
+            currentMech.health = 0;
+          }
+        }
+      }
+
+      // Assign circling direction if not assigned
+      if (!enemy.circlingAssigned) {
+        enemy.circlingAssigned = true;
+        enemy.circlingDirection = random(2); // 0 or 1
+      }
+
+      // Move perpendicular to the player without division
+      if (abs(dx) > abs(dy)) {
+        enemy.y += enemy.circlingDirection ? enemy.moveSpeed : -enemy.moveSpeed;
+      } else {
+        enemy.x += enemy.circlingDirection ? -enemy.moveSpeed : enemy.moveSpeed;
+      }
+    }
+    else if (distSq <= approachDistSq) {
+      // **Medium Distance** - Approach behavior
+
+      // Clear circling assigned flag
+      enemy.circlingAssigned = false;
+
+      // Calculate movement steps without overshooting and eliminate abs()
+      SQ7x8 stepX = (dx > enemy.moveSpeed) ? enemy.moveSpeed :
+                    (dx < -enemy.moveSpeed) ? -enemy.moveSpeed : dx;
+      SQ7x8 stepY = (dy > enemy.moveSpeed) ? enemy.moveSpeed :
+                    (dy < -enemy.moveSpeed) ? -enemy.moveSpeed : dy;
+
+      // Apply movement steps
+      enemy.x += stepX;
+      enemy.y += stepY;
+    }
+    else {
+      // **Far Distance** - Wandering behavior
+
+      if (enemy.wanderCounter == 0) {
+        enemy.wanderDirection = random(4); // 0: Up, 1: Right, 2: Down, 3: Left
+        enemy.wanderCounter = random(5, 16);
+      }
+      enemy.wanderCounter--;
+
+      // Direction arrays to replace switch-case
+      static const int8_t dxs[] = { 0, 1, 0, -1 };
+      static const int8_t dys[] = { -1, 0, 1, 0 };
+      enemy.x += dxs[enemy.wanderDirection] * enemy.moveSpeed;
+      enemy.y += dys[enemy.wanderDirection] * enemy.moveSpeed;
+
+      // Clear circling if currently wandering
+      enemy.circlingAssigned = false;
+    }
+
+    // Apply world coordinate wrapping
+    enemy.x = wrapCoordinate(enemy.x, worldWidth);
+    enemy.y = wrapCoordinate(enemy.y, worldHeight);
+  }
+}
+*/
 
 #define MAX_ENEMIES 3
 #define APPROACH_DISTANCE_SQ (12 * 12)    // 144
@@ -350,42 +475,39 @@ void updateEnemies() {
 constexpr uint8_t MAX_MISSIONS = 3;       // Maximum number of missions available at any time
 //constexpr uint8_t MAX_ENEMIES = 3;        // Assuming a max of 3 mechs per mission
 
-// Struct to represent a mission
+// TODO: Simplify mission by removing activeEnemies and decrementing numEnemies instead?
 struct Mission {
   uint8_t numEnemies;
-  MechType mechs[MAX_ENEMIES];
+  uint8_t activeEnemies;
+  MechType mechs[MAX_ENEMIES];  // Assuming a max of 3 mechs per mission
   uint16_t reward;
 };
 
-// Declare mission arrays
-Mission availableMissions[MAX_MISSIONS];
+const uint8_t maxMissions = 3;  // Maximum number of missions available at any time
+Mission availableMissions[maxMissions];
 Mission currentMission;
 
-// Function prototype
+// Modify generateMission to include MechType
 Mission generateMission();
 
 // Function to generate a mission
 Mission generateMission() {
   Mission mission;
-  uint8_t totalDifficulty = 0;
-  uint8_t day = player.dayCount;
+  uint8_t totalDifficulty = 0;  // Accumulate difficulty here
 
-  // Determine mission parameters based on the current day
-  if (day < 10) {
+  if (player.dayCount < 10) {
     mission.numEnemies = random(1, 3);  // 1 to 2 light mechs
     for (uint8_t i = 0; i < mission.numEnemies; i++) {
       mission.mechs[i] = MechType::Mothra;
       totalDifficulty += 1;  // Difficulty value for Mothra
     }
-  }
-  else if (day < 20) {  // 10 to 19
+  } else if (player.dayCount >= 10 && player.dayCount < 20) {
     mission.numEnemies = random(2, 4);  // 2 to 3 light mechs
     for (uint8_t i = 0; i < mission.numEnemies; i++) {
       mission.mechs[i] = MechType::Mothra;
       totalDifficulty += 1;
     }
-  }
-  else if (day < 30) {  // 20 to 29
+  } else if (player.dayCount >= 15 && player.dayCount < 30) {
     mission.numEnemies = random(1, 4);  // 1 to 3 light or medium mechs
     for (uint8_t i = 0; i < mission.numEnemies; i++) {
       if (random(0, 2) == 0) {
@@ -396,8 +518,7 @@ Mission generateMission() {
         totalDifficulty += 1;
       }
     }
-  }
-  else if (day < 40) {  // 30 to 39
+  } else if (player.dayCount >= 30 && player.dayCount < 40) {
     mission.numEnemies = random(1, 4);  // 1 to 3 medium or heavy mechs
     for (uint8_t i = 0; i < mission.numEnemies; i++) {
       if (random(0, 2) == 0) {
@@ -409,27 +530,20 @@ Mission generateMission() {
       }
     }
   }
-  else {  // 40 and above
-    mission.numEnemies = random(1, 4);  // 1 to 3 heavy mechs
-    for (uint8_t i = 0; i < mission.numEnemies; i++) {
-      mission.mechs[i] = MechType::Thor_Hammer;
-      totalDifficulty += 3;
-    }
-  }
+  // Add more conditions for other day count ranges as needed
 
   // Set mission reward based on totalDifficulty
-  mission.reward = (uint16_t)totalDifficulty * 1000;  // 1000 credits per difficulty point
+  mission.reward = totalDifficulty * 1000;  // For example, 50 credits per difficulty point
 
   return mission;
 }
 
 // Function to populate the list of available missions
 void populateMissionList() {
-  for (uint8_t i = 0; i < MAX_MISSIONS; i++) {
+  for (uint8_t i = 0; i < maxMissions; i++) {
     availableMissions[i] = generateMission();
   }
 }
-
 
 void initNewGame() {
   player.dayCount = 1;
@@ -452,8 +566,8 @@ void initNewGame() {
 struct SaveData {
   uint8_t dayCount = 0;
   uint24_t money = 0;
-  Mission savedMissions[MAX_MISSIONS];  // Add mission list to save data
-  Mech mechs[3];
+  Mission savedMissions[maxMissions];  // Add mission list to save data
+  Mech savedMechs[3];
 };
 
 SaveData saveData;
@@ -463,9 +577,9 @@ void initSaveGame() {
   saveData.money = player.money;
 
   for (uint8_t i = 0; i < 3; i++) {
-    saveData.mechs[i] = player.mechs[i];
+    saveData.savedMechs[i] = player.mechs[i];
   }
-  for (uint8_t i = 0; i < MAX_MISSIONS; i++) {
+  for (uint8_t i = 0; i < maxMissions; i++) {
     saveData.savedMissions[i] = availableMissions[i];
   }
 }
@@ -492,9 +606,9 @@ void updateLoadGame() {
 
 
   for (uint8_t i = 0; i < 3; i++) {
-    saveData.mechs[i] = player.mechs[i];
+    player.mechs[i] = saveData.savedMechs[i];
   }
-  for (uint8_t i = 0; i < MAX_MISSIONS; i++) {
+  for (uint8_t i = 0; i < maxMissions; i++) {
     availableMissions[i] = saveData.savedMissions[i];
   }
 }
@@ -633,15 +747,18 @@ void updateSaveLoadMenu() {
   }
 }
 
-void initializeMission(const Mission &mission);
 
-void initializeMission(const Mission &mission) {
+void initializeMission(const Mission& mission);
+
+void initializeMission(const Mission& mission) {
   player.x = random(worldWidth);   // Random player X position
   player.y = random(worldHeight);  // Random player Y position
   player.heat = 0;                 // Reset player heat to 0
+  //player.mechStatus = MechStatus::Normal;
   player.mechs[player.currentMech].status = MechStatus::Normal;
 
-  currentMission.numEnemies = mission.numEnemies;
+  // Simplify by just using numEnemies directly?
+  currentMission.activeEnemies = mission.numEnemies;
 
   for (uint8_t i = 0; i < MAX_ENEMIES; ++i) {
     if (i < mission.numEnemies) {
@@ -681,7 +798,9 @@ void initializeMission(const Mission &mission) {
       if (enemies[i].damage < 1) {
         enemies[i].damage = 1;
       }
-    }
+    } /*else {
+      enemies[i].state = EnemyState::Inactive;
+    }*/
   }
 }
 
@@ -698,6 +817,76 @@ void completeMission() {
   currentState = GameState::Main_Menu;    // Return to main menu
   ++player.dayCount;
 }
+
+/*
+
+void initializeMission(const Mission& mission) {
+  player.x = random(worldWidth);   // Random player X position
+  player.y = random(worldHeight);  // Random player Y position
+  player.heat = 0;                 // Reset player heat to 0
+  player.mechStatus = MechStatus::Normal;
+
+  // Simplify by just using numEnemies directly?
+  currentMission.activeEnemies = mission.numEnemies;
+
+  for (uint8_t i = 0; i < MAX_ENEMIES; ++i) {
+    if (i < mission.numEnemies) {
+      enemies[i].state = EnemyState::Active;
+      enemies[i].mechType = mission.mechs[i];
+      // Randomly set enemy positions within world bounds
+      enemies[i].x = random(worldWidth);
+      enemies[i].y = random(worldHeight);
+      enemies[i].hitFlashTimer = 0;  // Ensure no flash on spawn
+
+      uint8_t baseDamage;
+
+      switch (enemies[i].mechType) {
+        case MechType::Mothra:
+          enemies[i].health = 100;
+          enemies[i].moveSpeed = 0.1;
+          baseDamage = 5;  // Base damage for Mothra
+          break;
+        case MechType::Battle_Cat:
+          enemies[i].health = 200;
+          enemies[i].moveSpeed = 0.05;
+          baseDamage = 10;  // Base damage for BattleCat
+          break;
+        case MechType::Thor_Hammer:
+          enemies[i].health = 300;
+          enemies[i].moveSpeed = 0.02;
+          baseDamage = 15;  // Base damage for Thor Hammer
+          break;
+      }
+
+      // Calculate enemy damage based on baseDamage and player armor
+      const uint8_t maxArmor = player.playerMechStats.maxArmor;
+      uint8_t playerArmor = player.playerMechStats.armor;
+      enemies[i].damage = (uint8_t)((baseDamage * (maxArmor - playerArmor + 1)) / maxArmor);
+
+      // Ensure that damage is at least 1
+      if (enemies[i].damage < 1) {
+        enemies[i].damage = 1;
+      }
+    } /*else {
+      enemies[i].state = EnemyState::Inactive;
+    }
+  }
+}
+
+void completeMission() {
+  // Make sure screen is set back to normal
+  FX::enableOLED();
+  arduboy.invert(false);
+  FX::disableOLED();
+
+  // Example logic for completing a mission
+  player.mechStatus = MechStatus::Normal;
+  player.money += currentMission.reward;  // Award money to player (needs to be more randomized and populated when mission is generated)
+  populateMissionList();                  // Generate new set of missions
+  currentState = GameState::Main_Menu;    // Return to main menu
+  ++player.dayCount;
+}
+*/
 
 uint8_t selectedMissionIndex = 0;  // Index of the currently selected mission
 
@@ -742,11 +931,11 @@ void updateMissionMenu() {
         if (selectedMissionIndex > 0) {
           selectedMissionIndex--;
         } else {
-          selectedMissionIndex = MAX_MISSIONS - 1;
+          selectedMissionIndex = maxMissions - 1;
         }
         break;
       case 2:  // Right arrow
-        if (selectedMissionIndex < MAX_MISSIONS - 1) {
+        if (selectedMissionIndex < maxMissions - 1) {
           selectedMissionIndex++;
         } else {
           selectedMissionIndex = 0;
@@ -1230,11 +1419,25 @@ void updateCustomizationMenu() {
   }
 }
 
+// Corrected wrapDistance to ensure proper minimal distance calculation
+inline SQ7x8 wrapDistance(SQ7x8 a, SQ7x8 b, SQ7x8 maxValue) {
+  SQ7x8 diff = a - b;
+  if (diff > maxValue / 2) {
+    diff -= maxValue;
+  }
+  if (diff < -maxValue / 2) {
+    diff += maxValue;
+  }
+  return diff;
+}
+
+// Corrected wrapCoordinate with while loops to handle multiple wraps
 SQ7x8 wrapCoordinate(SQ7x8 coordinate, SQ7x8 max) {
-  if (coordinate < 0) {
-    return max + coordinate;
-  } else if (coordinate >= max) {
-    return coordinate - max;
+  while (coordinate < 0) {
+    coordinate += max;
+  }
+  while (coordinate >= max) {
+    coordinate -= max;
   }
   return coordinate;
 }
@@ -1434,7 +1637,7 @@ void updateExplosions() {
       if (arduboy.everyXFrames(8)) {
         if (enemies[i].currentFrame >= enemies[i].maxFrames) {
           // Decrement active enemies and mark the enemy as inactive when the explosion finishes
-          --currentMission.numEnemies;
+          --currentMission.activeEnemies;
           enemies[i].state = EnemyState::Inactive;
           enemies[i].currentFrame = 0;  // Reset frame for future use
           enemies[i].maxFrames = 0;     // Reset maxFrames
@@ -1772,15 +1975,16 @@ struct Rocket : public Object {
 Rocket rockets[MAX_ROCKETS];
 
 // Helper function for coordinate wrapping difference
-SQ7x8 wrapDistance(SQ7x8 a, SQ7x8 b, SQ7x8 maxValue) {
+/*inline SQ7x8 wrapDistance(SQ7x8 a, SQ7x8 b, SQ7x8 maxValue) {
   SQ7x8 diff = a - b;
-  if (diff > maxValue / 2) {
+  if (diff > (maxValue / 2)) {
     diff -= maxValue;
-  } else if (diff < -maxValue / 2) {
+  } else if (diff < -(maxValue / 2)) {
     diff += maxValue;
   }
   return diff;
-}
+}*/
+
 
 // Inline function to check if an enemy is targeted by any active rocket
 inline bool isEnemyTargeted(uint8_t enemyIndex) {
@@ -2313,7 +2517,7 @@ void loop() {
     case GameState::Game_Play:
       handleInput();
       // Render each grid cell
-      if (currentMission.numEnemies == 0) {
+      if (currentMission.activeEnemies == 0) {
         completeMission();
       }
       for (uint8_t i = 0; i < gridX * gridY; ++i) {
