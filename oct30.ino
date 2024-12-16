@@ -1,8 +1,12 @@
 /*// TODO: 
+- Fix bug where selling Mothra then saving, reloading, and going back into hanger menu Mothra will initially appear (until player scrolls)
+- Fix bug where bullets/rocket persist betwene missions (so when the player begins next mission they might still be seen)
+- Add weapon weight
+- Increase bullet speed (because mothra can currently outrun them)
 - Invert explosion sprites color (so they look better)
 - Draw enemy sprite masks
 - Finish implementing player ammo (add reload fee in repair menu?)
-- Finish customization menu implementation (so player can buy/sell mechs)
+- Finish customization menu implementation (so player can buy/sell mechs - just needs prompts)
 - Maybe: Add mech engine(s) and adjust other stats (moveSpeed, rotationSpeed, heatSink, weight, etc.) dependent on it?
 - Add sounds (if I have enough RAM after everything else)
 - Add jump jets for player dodging mechanic (if enough RAM is left over)*/
@@ -205,21 +209,21 @@ void initializeMech(Mech &mech) {
   
   switch (mech.type) {
     case MechType::Mothra:
-      mech.moveSpeed = 0.3;
+      mech.moveSpeed = 0.20;
       FX::readDataBytes(playerMothraStats, mech.mechStats, 6);
       mech.weapons[0] = WeaponType::Bullets;
       mech.weapons[1] = WeaponType::Laser;
       mech.weapons[2] = WeaponType::None;
       break;
     case MechType::Battle_Cat:
-      mech.moveSpeed = 0.2;
+      mech.moveSpeed = 0.15;
       FX::readDataBytes(playerBattleCatStats, mech.mechStats, 6);
       mech.weapons[0] = WeaponType::Rockets;
       mech.weapons[1] = WeaponType::Rockets;
       mech.weapons[2] = WeaponType::Bullets;
       break;
     case MechType::Thor_Hammer:
-      mech.moveSpeed = 0.1;
+      mech.moveSpeed = 0.10;
       FX::readDataBytes(playerThorHammerStats, mech.mechStats, 6);
       mech.weapons[0] = WeaponType::HeavyBullets;
       mech.weapons[1] = WeaponType::MediumRockets;
