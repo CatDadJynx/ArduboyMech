@@ -1,11 +1,10 @@
 /*// TODO: 
 - Fix bug where selling Mothra then saving, reloading, and going back into hanger menu Mothra will initially appear (until player scrolls)
-- Fix bug where bullets/rocket persist betwene missions (so when the player begins next mission they might still be seen)
+- Fix bug where bullets/rocket persist between missions (so when the player begins next mission they might still be seen)
 - Add weapon weight
 - Increase bullet speed (because mothra can currently outrun them)
 - Invert explosion sprites color (so they look better)
 - Draw enemy sprite masks
-- Finish implementing player ammo (add reload fee in repair menu?)
 - Finish customization menu implementation (so player can buy/sell mechs - just needs prompts)
 - Maybe: Add mech engine(s) and adjust other stats (moveSpeed, rotationSpeed, heatSink, weight, etc.) dependent on it?
 - Add sounds (if I have enough RAM after everything else)
@@ -91,7 +90,6 @@ const uint8_t availableWeapons[] PROGMEM = {
   WeaponType::Rockets,          4, 200, 100, 50,  60, // Light Rockets
   WeaponType::MediumRockets,    6, 250, 110, 60,  60, // Medium Rockets
   WeaponType::Laser,            2, 225, 90, 100,   0  // Laser
-  // Add more weapons as needed
 };
 
 constexpr uint8_t WEAPON_ATTR_COUNT = 6; // Number of attributes per weapon
@@ -235,131 +233,7 @@ void initializeMech(Mech &mech) {
   initializeAmmo(mech); // Initialize ammo for this specific mech
 }
 
-/*
-const uint8_t MAX_ENEMIES = 3;
-const SQ15x16 approachDistSq = 144;    // 12 squared
-const SQ7x8 circleDistSq = 16;        // 4 squared
-const uint8_t flashDuration = 5;
-
-enum EnemyState : uint8_t {
-  Active,
-  Inactive,
-  Exploding
-};
-
-struct Enemy : public Object {
-  EnemyState state = EnemyState::Inactive;
-  uint8_t scaledSize;
-  SQ7x8 moveSpeed;
-  uint16_t health;
-  uint8_t damage;
-  MechType mechType;
-  uint8_t currentFrame;
-  uint8_t maxFrames;
-  uint8_t hitFlashTimer;
-  bool circlingAssigned;
-  bool circlingDirection;
-  uint8_t wanderCounter;
-  uint8_t wanderDirection;
-};
-
-Enemy enemies[MAX_ENEMIES];
-uint8_t flashTimer;
-
-void updateEnemies() {
-  // Handle flash timer for display inversion
-  if (flashTimer > 0) {
-    FX::enableOLED();
-    arduboy.invert(true);
-    FX::disableOLED();
-    flashTimer--;
-  } else {
-    FX::enableOLED();
-    arduboy.invert(false);
-    FX::disableOLED();
-  }
-
-  for (uint8_t i = 0; i < MAX_ENEMIES; ++i) {
-    Enemy &enemy = enemies[i];
-
-    if (enemy.state != Active) continue;
-
-    // Compute the distance between the enemy and the player with wrapping
-    SQ7x8 dx = wrapDistance(player.x, enemy.x, worldWidth);
-    SQ7x8 dy = wrapDistance(player.y, enemy.y, worldHeight);
-    SQ15x16 distSq = (SQ15x16)dx * dx + (SQ15x16)dy * dy;
-    //Serial.println((float)(distSq));
-    if (distSq <= circleDistSq) {
-      // **Close Distance** - Circling behavior
-
-      // Attack chance (10% chance)
-      if (random(10) == 0) {
-        Mech &currentMech = player.mechs[player.currentMech];
-        if (currentMech.health) {
-          flashTimer = flashDuration;
-          // Simplified health deduction
-          if (currentMech.health > enemy.damage) {
-            currentMech.health -= enemy.damage;
-          } else {
-            currentMech.health = 0;
-          }
-        }
-      }
-
-      // Assign circling direction if not assigned
-      if (!enemy.circlingAssigned) {
-        enemy.circlingAssigned = true;
-        enemy.circlingDirection = random(2); // 0 or 1
-      }
-
-      // Move perpendicular to the player without division
-      if (abs(dx) > abs(dy)) {
-        enemy.y += enemy.circlingDirection ? enemy.moveSpeed : -enemy.moveSpeed;
-      } else {
-        enemy.x += enemy.circlingDirection ? -enemy.moveSpeed : enemy.moveSpeed;
-      }
-    }
-    else if (distSq <= approachDistSq) {
-      // **Medium Distance** - Approach behavior
-
-      // Clear circling assigned flag
-      enemy.circlingAssigned = false;
-
-      // Calculate movement steps without overshooting and eliminate abs()
-      SQ7x8 stepX = (dx > enemy.moveSpeed) ? enemy.moveSpeed :
-                    (dx < -enemy.moveSpeed) ? -enemy.moveSpeed : dx;
-      SQ7x8 stepY = (dy > enemy.moveSpeed) ? enemy.moveSpeed :
-                    (dy < -enemy.moveSpeed) ? -enemy.moveSpeed : dy;
-
-      // Apply movement steps
-      enemy.x += stepX;
-      enemy.y += stepY;
-    }
-    else {
-      // **Far Distance** - Wandering behavior
-
-      if (enemy.wanderCounter == 0) {
-        enemy.wanderDirection = random(4); // 0: Up, 1: Right, 2: Down, 3: Left
-        enemy.wanderCounter = random(5, 16);
-      }
-      enemy.wanderCounter--;
-
-      // Direction arrays to replace switch-case
-      static const int8_t dxs[] = { 0, 1, 0, -1 };
-      static const int8_t dys[] = { -1, 0, 1, 0 };
-      enemy.x += dxs[enemy.wanderDirection] * enemy.moveSpeed;
-      enemy.y += dys[enemy.wanderDirection] * enemy.moveSpeed;
-
-      // Clear circling if currently wandering
-      enemy.circlingAssigned = false;
-    }
-
-    // Apply world coordinate wrapping
-    enemy.x = wrapCoordinate(enemy.x, worldWidth);
-    enemy.y = wrapCoordinate(enemy.y, worldHeight);
-  }
-}
-*/
+// TODO: FURTHER REFINE ENEMY CODE TO REDUCE PROGRAM MEMORY
 
 #define MAX_ENEMIES 3
 #define APPROACH_DISTANCE_SQ (12 * 12)    // 144
@@ -475,11 +349,11 @@ void updateEnemies() {
   }
 }
 
+// TODO: FIX CONDITIONALS FOR MISSION GENERATION SINCE THEY MIGHT NOT BE SET UP CORRECTLY?
+
 // Define maximum constants
 constexpr uint8_t MAX_MISSIONS = 3;       // Maximum number of missions available at any time
-//constexpr uint8_t MAX_ENEMIES = 3;        // Assuming a max of 3 mechs per mission
 
-// TODO: Simplify mission by removing activeEnemies and decrementing numEnemies instead?
 struct Mission {
   uint8_t numEnemies;
   uint8_t activeEnemies;
@@ -607,7 +481,6 @@ void updateLoadGame() {
   FX::loadGameState(saveData);
   player.dayCount = saveData.dayCount;
   player.money = saveData.money;
-
 
   for (uint8_t i = 0; i < 3; i++) {
     player.mechs[i] = saveData.savedMechs[i];
@@ -751,7 +624,6 @@ void updateSaveLoadMenu() {
   }
 }
 
-
 void initializeMission(const Mission& mission);
 
 void initializeMission(const Mission& mission) {
@@ -821,76 +693,6 @@ void completeMission() {
   currentState = GameState::Main_Menu;    // Return to main menu
   ++player.dayCount;
 }
-
-/*
-
-void initializeMission(const Mission& mission) {
-  player.x = random(worldWidth);   // Random player X position
-  player.y = random(worldHeight);  // Random player Y position
-  player.heat = 0;                 // Reset player heat to 0
-  player.mechStatus = MechStatus::Normal;
-
-  // Simplify by just using numEnemies directly?
-  currentMission.activeEnemies = mission.numEnemies;
-
-  for (uint8_t i = 0; i < MAX_ENEMIES; ++i) {
-    if (i < mission.numEnemies) {
-      enemies[i].state = EnemyState::Active;
-      enemies[i].mechType = mission.mechs[i];
-      // Randomly set enemy positions within world bounds
-      enemies[i].x = random(worldWidth);
-      enemies[i].y = random(worldHeight);
-      enemies[i].hitFlashTimer = 0;  // Ensure no flash on spawn
-
-      uint8_t baseDamage;
-
-      switch (enemies[i].mechType) {
-        case MechType::Mothra:
-          enemies[i].health = 100;
-          enemies[i].moveSpeed = 0.1;
-          baseDamage = 5;  // Base damage for Mothra
-          break;
-        case MechType::Battle_Cat:
-          enemies[i].health = 200;
-          enemies[i].moveSpeed = 0.05;
-          baseDamage = 10;  // Base damage for BattleCat
-          break;
-        case MechType::Thor_Hammer:
-          enemies[i].health = 300;
-          enemies[i].moveSpeed = 0.02;
-          baseDamage = 15;  // Base damage for Thor Hammer
-          break;
-      }
-
-      // Calculate enemy damage based on baseDamage and player armor
-      const uint8_t maxArmor = player.playerMechStats.maxArmor;
-      uint8_t playerArmor = player.playerMechStats.armor;
-      enemies[i].damage = (uint8_t)((baseDamage * (maxArmor - playerArmor + 1)) / maxArmor);
-
-      // Ensure that damage is at least 1
-      if (enemies[i].damage < 1) {
-        enemies[i].damage = 1;
-      }
-    } /*else {
-      enemies[i].state = EnemyState::Inactive;
-    }
-  }
-}
-
-void completeMission() {
-  // Make sure screen is set back to normal
-  FX::enableOLED();
-  arduboy.invert(false);
-  FX::disableOLED();
-
-  // Example logic for completing a mission
-  player.mechStatus = MechStatus::Normal;
-  player.money += currentMission.reward;  // Award money to player (needs to be more randomized and populated when mission is generated)
-  populateMissionList();                  // Generate new set of missions
-  currentState = GameState::Main_Menu;    // Return to main menu
-  ++player.dayCount;
-}
-*/
 
 uint8_t selectedMissionIndex = 0;  // Index of the currently selected mission
 
@@ -1632,7 +1434,6 @@ void drawMech(uint8_t x, uint8_t y) {
   }
 }
 
-
 void updateExplosions() {
   // Update the explosion frames for all exploding enemies
   for (uint8_t i = 0; i < currentMission.numEnemies; ++i) {
@@ -1879,7 +1680,6 @@ bool fireBullet() {
   return false;  // No available bullet slots
 }
 
-
 void updateBullets() {
   for (uint8_t i = 0; i < maxBullets; ++i) {
     if (isBulletActive(i)) {
@@ -1977,18 +1777,6 @@ struct Rocket : public Object {
 
 // Array to hold active rockets
 Rocket rockets[MAX_ROCKETS];
-
-// Helper function for coordinate wrapping difference
-/*inline SQ7x8 wrapDistance(SQ7x8 a, SQ7x8 b, SQ7x8 maxValue) {
-  SQ7x8 diff = a - b;
-  if (diff > (maxValue / 2)) {
-    diff -= maxValue;
-  } else if (diff < -(maxValue / 2)) {
-    diff += maxValue;
-  }
-  return diff;
-}*/
-
 
 // Inline function to check if an enemy is targeted by any active rocket
 inline bool isEnemyTargeted(uint8_t enemyIndex) {
@@ -2241,15 +2029,9 @@ void renderLaser() {
   if (to3DView(laserEnd, endParams)) {
     // Draw the laser line from the weapon to the laser end point
     arduboy.drawLine(weaponScreenX, weaponScreenY, endParams.x, endParams.y, WHITE);
-    //} else {
-    // Draw the laser to the top of the screen
-    //arduboy.drawLine(weaponScreenX, weaponScreenY, weaponScreenX, 0, WHITE);
   }
 }
 
-// Maybe change to function that returns bool (so logic can be continued outside of function)
-// and separate enemy health decrement and state change to be handled elsewhere?
-// So there can also be visual confirmation of hits by inverting colors in rendering logic?
 void hitEnemy(uint8_t enemyIndex, uint8_t damage) {
   if (enemies[enemyIndex].health <= 0 && enemies[enemyIndex].state != EnemyState::Exploding) {
     // Transition to the "Exploding" state
