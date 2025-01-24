@@ -371,48 +371,62 @@ Mission generateMission();
 // Function to generate a mission
 Mission generateMission() {
   Mission mission;
-  uint8_t totalDifficulty = 0;  // Accumulate difficulty here
+  uint8_t day = player.dayCount;
 
-  if (player.dayCount < 10) {
-    mission.numEnemies = random(1, 3);  // 1 to 2 light mechs
-    for (uint8_t i = 0; i < mission.numEnemies; i++) {
-      mission.mechs[i] = MechType::Mothra;
-      totalDifficulty += 1;  // Difficulty value for Mothra
-    }
-  } else if (player.dayCount >= 10 && player.dayCount < 20) {
-    mission.numEnemies = random(2, 4);  // 2 to 3 light mechs
-    for (uint8_t i = 0; i < mission.numEnemies; i++) {
+  // Decide how many enemies based on day
+  // (example: 1–2 for day<10, 2–3 for day<20, etc.)
+  uint8_t minEnemies, maxEnemies;
+  if (day < 10) {
+    minEnemies = 1; maxEnemies = 2;
+  } 
+  else if (day < 20) {
+    minEnemies = 2; maxEnemies = 3;
+  } 
+  else if (day < 30) {
+    minEnemies = 1; maxEnemies = 3;
+  } 
+  else {
+    // day >=30 && day <40, or if you like you can do another else if (day<40) ...
+    minEnemies = 1; maxEnemies = 3;
+  }
+
+  // Generate the random enemy count
+  mission.numEnemies = random(minEnemies, maxEnemies + 1);
+  mission.activeEnemies = mission.numEnemies;  // or set later
+
+  // Pick mechs & compute difficulty in one pass
+  uint8_t totalDifficulty = 0;
+
+  for (uint8_t i = 0; i < mission.numEnemies; i++) {
+    if (day < 20) {
+      // Low-tier (Mothra only)
       mission.mechs[i] = MechType::Mothra;
       totalDifficulty += 1;
-    }
-  } else if (player.dayCount >= 15 && player.dayCount < 30) {
-    mission.numEnemies = random(1, 4);  // 1 to 3 light or medium mechs
-    for (uint8_t i = 0; i < mission.numEnemies; i++) {
+    } 
+    else if (day < 30) {
+      // Medium range: random Mothra or Battle_Cat
       if (random(0, 2) == 0) {
         mission.mechs[i] = MechType::Battle_Cat;
-        totalDifficulty += 2;  // Difficulty value for Battle_Cat
+        totalDifficulty += 2;
       } else {
         mission.mechs[i] = MechType::Mothra;
         totalDifficulty += 1;
       }
     }
-  } else if (player.dayCount >= 30 && player.dayCount < 40) {
-    mission.numEnemies = random(1, 4);  // 1 to 3 medium or heavy mechs
-    for (uint8_t i = 0; i < mission.numEnemies; i++) {
+    else {
+      // Higher range: random Battle_Cat or Thor_Hammer
       if (random(0, 2) == 0) {
         mission.mechs[i] = MechType::Battle_Cat;
         totalDifficulty += 2;
       } else {
         mission.mechs[i] = MechType::Thor_Hammer;
-        totalDifficulty += 3;  // Difficulty value for Thor_Hammer
+        totalDifficulty += 3;
       }
     }
   }
-  // Add more conditions for other day count ranges as needed
 
-  // Set mission reward based on totalDifficulty
-  mission.reward = totalDifficulty * 1000;  // For example, 50 credits per difficulty point
-
+  // Final reward
+  mission.reward = totalDifficulty * 1000;
   return mission;
 }
 
