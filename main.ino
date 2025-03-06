@@ -1085,7 +1085,7 @@ void updateHangerMenu() {
 
   // If in buy menu, display the buy menu and navigable items
   if (inBuyMenu) {
-    FX::drawBitmap(20, 5, mechBuyMenu62x27, 0, dbmNormal);
+    FX::drawBitmap(20, 5, mechBuyMenu94x27, 0, dbmMasked);
 
     if (arduboy.justPressed(UP_BUTTON)) {
       if (buyMenuSelection > 0) {
@@ -1100,7 +1100,7 @@ void updateHangerMenu() {
 
     uint8_t itemStartX = 20;
     uint8_t itemStartY = 5;
-    uint8_t itemWidth  = 62;
+    uint8_t itemWidth  = 94;
     uint8_t itemHeight = 9;
     for (uint8_t i = 0; i < BUY_MENU_ITEM_COUNT; i++) {
       uint8_t yPos = itemStartY + (i * itemHeight);
