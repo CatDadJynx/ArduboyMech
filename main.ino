@@ -86,11 +86,11 @@ enum WeaponType : uint8_t {
 // Define the weapon attributes in PROGMEM as a flat array
 const uint8_t availableWeapons[] PROGMEM = {
   // Type,      Damage, Cost, Weight, Heat, MaxAmmo
-  WeaponType::Bullets, 1, 100, 80, 30, 200,        // Light MG
-  WeaponType::HeavyBullets, 2, 150, 90, 40, 200,   // Heavy MG
-  WeaponType::Rockets, 4, 200, 100, 50, 60,        // Light Rockets
-  WeaponType::MediumRockets, 6, 250, 110, 60, 60,  // Medium Rockets
-  WeaponType::Laser, 2, 225, 90, 100, 0            // Laser
+  WeaponType::Bullets, 1, 100, 5, 30, 200,        // Light MG
+  WeaponType::HeavyBullets, 2, 150, 10, 40, 200,   // Heavy MG
+  WeaponType::Rockets, 4, 200, 15, 50, 60,        // Light Rockets
+  WeaponType::MediumRockets, 6, 250, 20, 60, 60,  // Medium Rockets
+  WeaponType::Laser, 2, 225, 30, 100, 0            // Laser
 };
 
 constexpr uint8_t WEAPON_ATTR_COUNT = 6;  // Number of attributes per weapon
@@ -153,6 +153,16 @@ inline uint8_t getWeaponCost(WeaponType type) {
     return pgm_read_byte(&availableWeapons[address]);
   }
 
+  return 0;
+}
+
+inline uint8_t getWeaponWeight(WeaponType type) {
+  if (type == WeaponType::None) return 0;
+  uint8_t index = type - 1;  // Adjust since None = 0
+  if (index < NUM_AVAILABLE_WEAPONS) {
+    uint16_t address = index * WEAPON_ATTR_COUNT + 3;  // Weight is at offset 3
+    return pgm_read_byte(&availableWeapons[address]);
+  }
   return 0;
 }
 
@@ -233,6 +243,51 @@ void initializeMech(Mech &mech) {
 
   initializeAmmo(mech);  // Initialize ammo for this specific mech
 }
+
+/*void initializeMech(Mech &mech) {
+  mech.health = 100;
+  mech.status = MechStatus::Normal;
+
+  switch (mech.type) {
+    case MechType::Mothra:
+      mech.moveSpeed = 0.20;
+      FX::readDataBytes(playerMothraStats, mech.mechStats, 6);
+      mech.weapons[0] = WeaponType::Bullets;
+      mech.weapons[1] = WeaponType::Laser;
+      mech.weapons[2] = WeaponType::None;
+      break;
+    case MechType::Battle_Cat:
+      mech.moveSpeed = 0.15;
+      FX::readDataBytes(playerBattleCatStats, mech.mechStats, 6);
+      mech.weapons[0] = WeaponType::Rockets;
+      mech.weapons[1] = WeaponType::Rockets;
+      mech.weapons[2] = WeaponType::Bullets;
+      break;
+    case MechType::Thor_Hammer:
+      mech.moveSpeed = 0.10;
+      FX::readDataBytes(playerThorHammerStats, mech.mechStats, 6);
+      mech.weapons[0] = WeaponType::HeavyBullets;
+      mech.weapons[1] = WeaponType::MediumRockets;
+      mech.weapons[2] = WeaponType::Laser;
+      break;
+  }
+
+  initializeAmmo(mech);
+
+  // --- New: Add weight for each equipped weapon and adjust speed ---
+  for (uint8_t i = 0; i < 3; ++i) {
+    if (mech.weapons[i] != WeaponType::None) {
+      uint8_t weaponWeight = getWeaponWeight(mech.weapons[i]);
+      mech.mechStats[0] += weaponWeight;  // Increase overall weight stat
+      // Decrease moveSpeed by 0.01 per weight unit (ensuring it does not go negative)
+      if (mech.moveSpeed > weaponWeight * 0.01) {
+        mech.moveSpeed -= weaponWeight * 0.01;
+      } else {
+        mech.moveSpeed = 0;
+      }
+    }
+  }
+}*/
 
 // TODO: FURTHER REFINE ENEMY CODE TO REDUCE PROGRAM MEMORY
 
@@ -445,7 +500,7 @@ void populateMissionList() {
 
 void initNewGame() {
   player.dayCount = 1;
-  player.money = 50000;
+  player.money = 1000;
   player.currentMech = 0;
 
   // Initialize the first mech
@@ -1230,6 +1285,7 @@ void updateCustomizationMenu() {
         FX::drawBitmap(112, xPos, rightArrowSmall, 0, dbmMasked);
         player.mechs[player.currentMech].mechStats[statIndex]++;
         player.mechs[player.currentMech].mechStats[0]++;
+        // Manual stat adjustments use a higher conversion factor (0.01)
         player.mechs[player.currentMech].moveSpeed -= 0.01;
         player.money -= 100;
         if (player.mechs[player.currentMech].moveSpeed < 0) {
@@ -1287,12 +1343,22 @@ void updateCustomizationMenu() {
         selectedAvailableWeapon = (selectedAvailableWeapon < NUM_AVAILABLE_WEAPONS - 1) ? selectedAvailableWeapon + 1 : 0;
       }
 
-      // Handle purchase attempt
+      // Handle purchase attempt with weapon weight adjustment
       if (arduboy.justPressed(A_BUTTON)) {
         Weapon selectedWeapon = getAvailableWeapon(selectedAvailableWeapon);
         if (player.money >= selectedWeapon.cost) {
           player.money -= selectedWeapon.cost;
+          // Equip the new weapon
           player.mechs[player.currentMech].weapons[selectedWeaponSlot] = selectedWeapon.type;
+          // Add the weapon's weight to the mech's overall weight and reduce speed.
+          // Using a conversion factor of 0.005 per weight unit.
+          uint8_t weaponWeight = selectedWeapon.weight; // or use getWeaponWeight(selectedWeapon.type)
+          player.mechs[player.currentMech].mechStats[0] += weaponWeight;
+          if (player.mechs[player.currentMech].moveSpeed > weaponWeight * 0.005) {
+            player.mechs[player.currentMech].moveSpeed -= weaponWeight * 0.005;
+          } else {
+            player.mechs[player.currentMech].moveSpeed = 0;
+          }
           viewingAvailableWeapons = false;
         } else {
           notEnoughMoneyMessage = true;
@@ -1301,12 +1367,20 @@ void updateCustomizationMenu() {
     } else if (sellingWeapon) {
       displaySellConfirmation();
 
-      // Handle selling weapon
+      // Handle selling weapon with weight adjustment
       if (arduboy.justPressed(A_BUTTON)) {
         WeaponType weaponToSell = player.mechs[player.currentMech].weapons[selectedWeaponSlot];
         if (weaponToSell != WeaponType::None) {
           uint8_t sellPrice = getWeaponCost(weaponToSell) / 2;
           player.money += sellPrice;
+          // Remove the weapon's weight from the mech and increase its speed accordingly.
+          uint8_t weaponWeight = getWeaponWeight(weaponToSell);
+          if (player.mechs[player.currentMech].mechStats[0] >= weaponWeight) {
+            player.mechs[player.currentMech].mechStats[0] -= weaponWeight;
+          } else {
+            player.mechs[player.currentMech].mechStats[0] = 0;
+          }
+          player.mechs[player.currentMech].moveSpeed += weaponWeight * 0.005;
           player.mechs[player.currentMech].weapons[selectedWeaponSlot] = WeaponType::None;
         }
         sellingWeapon = false;
@@ -1314,6 +1388,7 @@ void updateCustomizationMenu() {
     }
   }
 }
+
 
 // Corrected wrapDistance to ensure proper minimal distance calculation
 inline SQ7x8 wrapDistance(SQ7x8 a, SQ7x8 b, SQ7x8 maxValue) {
