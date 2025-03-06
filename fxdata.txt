@@ -4,15 +4,15 @@ uint8_t playerBattleCatStats[] = {115, 115, 125, 115, 175, 2}
 uint8_t playerThorHammerStats[] = {125, 120, 135, 125, 200, 1}
 
 // Define available weapons for purchase
-uint8_t availableWeapons[] = {
+//uint8_t availableWeapons[] = {
   //Type, damage, cost, weight, heat usage, ammo
-  { 1, 1, 100, 80, 30, 200 },        // Light MG
-  { 2, 2, 150, 90, 40, 200 },  // Heavy MG
-  { 3, 4, 200, 100, 50, 60 },       // Light Rockets
-  { 5, 6, 250, 110, 60, 60 }, // Medium Rockets
-  { 5, 5, 225, 100, 100, 0 }          // Laser
+  //{ 1, 1, 100, 80, 30, 200 },        // Light MG
+  //{ 2, 2, 150, 90, 40, 200 },  // Heavy MG
+  //{ 3, 4, 200, 100, 50, 60 },       // Light Rockets
+  //{ 5, 6, 250, 110, 60, 60 }, // Medium Rockets
+  //{ 5, 5, 225, 100, 100, 0 }          // Laser
   // Add more weapons as needed
-};
+//};
 
 uint8_t mainMenuItems[] = {
   // x, y, height, width
@@ -100,6 +100,7 @@ image_t saveLoadMenu128x64 = "Sprites/SaveLoadMenu_128x64.png"
 image_t missionMenu128x64 = "Sprites/MissionMenu_128x64.png"
 image_t hangerMenu128x64 = "Sprites/HangerMenu_128x64.png"
 image_t customizationMenu128x64 = "Sprites/CustomizationMenu_128x64.png"
+image_t mechBuyMenu94x27 = "Sprites/mechBuyMenu_94x27.png"
 
 image_t leftArrowSmall = "Sprites/leftArrowSmall_7x13.png"
 image_t rightArrowSmall = "Sprites/rightArrowSmall_7x13.png"
