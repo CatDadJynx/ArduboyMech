@@ -1,7 +1,8 @@
 /*// TODO: 
 - Fix bug where selling Mothra then saving, reloading, and going back into hanger menu Mothra will initially appear (until player scrolls)
-- Fix bug where bullets/rocket persist between missions (so when the player begins next mission they might still be seen)
-- Add weapon weight
+- Fix bug where bullets/rocket persist between missions (so when the player begins next mission they might still be seen). Need to be properly deactivated between missions
+- Fix issue where "not enough money" message only flashes onscreen
+- Add weapon weight to player mech weight calculation (and make it so playercan't equip weapons if it puts them over mech weight limit)
 - Increase bullet speed (because mothra can currently outrun them)
 - Invert explosion sprites color (so they look better)
 - Draw enemy sprite masks
@@ -85,14 +86,14 @@ enum WeaponType : uint8_t {
 // Define the weapon attributes in PROGMEM as a flat array
 const uint8_t availableWeapons[] PROGMEM = {
   // Type,      Damage, Cost, Weight, Heat, MaxAmmo
-  WeaponType::Bullets,          1, 100,  80, 30, 200, // Light MG
-  WeaponType::HeavyBullets,     2, 150, 90, 40, 200, // Heavy MG
-  WeaponType::Rockets,          4, 200, 100, 50,  60, // Light Rockets
-  WeaponType::MediumRockets,    6, 250, 110, 60,  60, // Medium Rockets
-  WeaponType::Laser,            2, 225, 90, 100,   0  // Laser
+  WeaponType::Bullets, 1, 100, 80, 30, 200,        // Light MG
+  WeaponType::HeavyBullets, 2, 150, 90, 40, 200,   // Heavy MG
+  WeaponType::Rockets, 4, 200, 100, 50, 60,        // Light Rockets
+  WeaponType::MediumRockets, 6, 250, 110, 60, 60,  // Medium Rockets
+  WeaponType::Laser, 2, 225, 90, 100, 0            // Laser
 };
 
-constexpr uint8_t WEAPON_ATTR_COUNT = 6; // Number of attributes per weapon
+constexpr uint8_t WEAPON_ATTR_COUNT = 6;  // Number of attributes per weapon
 constexpr uint8_t NUM_AVAILABLE_WEAPONS = 5;
 
 struct Weapon {
@@ -118,40 +119,40 @@ Weapon getAvailableWeapon(uint8_t index) {
 // Function to retrieve the damage of a given WeaponType
 inline uint8_t getWeaponDamage(WeaponType type) {
   if (type == WeaponType::None) return 0;
-  
-  uint8_t index = type - 1; // Adjust since None = 0
+
+  uint8_t index = type - 1;  // Adjust since None = 0
   if (index < NUM_AVAILABLE_WEAPONS) {
     // Calculate the address for damage
     uint16_t address = index * WEAPON_ATTR_COUNT + 1;
     return pgm_read_byte(&availableWeapons[address]);
   }
-  
+
   return 0;
 }
 
 inline uint8_t getWeaponHeat(WeaponType type) {
   if (type == WeaponType::None) return 0;
-  
+
   uint8_t index = type - 1;
   if (index < NUM_AVAILABLE_WEAPONS) {
     // Calculate the address for heat
     uint16_t address = index * WEAPON_ATTR_COUNT + 4;
     return pgm_read_byte(&availableWeapons[address]);
   }
-  
+
   return 0;
 }
 
 inline uint8_t getWeaponCost(WeaponType type) {
   if (type == WeaponType::None) return 0;
-  
+
   uint8_t index = type - 1;
   if (index < NUM_AVAILABLE_WEAPONS) {
     // Calculate the address for cost
     uint16_t address = index * WEAPON_ATTR_COUNT + 2;
     return pgm_read_byte(&availableWeapons[address]);
   }
-  
+
   return 0;
 }
 
@@ -160,9 +161,9 @@ struct Mech {
   MechType type;
   MechStatus status;
   uint8_t health;
-  uint8_t mechStats[6];   // Specific stats for the mech
-  WeaponType weapons[3];  // Weapons equipped on the mech
-  uint8_t currentAmmo[3]; // Track ammo for each weapon in RAM
+  uint8_t mechStats[6];    // Specific stats for the mech
+  WeaponType weapons[3];   // Weapons equipped on the mech
+  uint8_t currentAmmo[3];  // Track ammo for each weapon in RAM
   SQ7x8 moveSpeed;
   // Add other mech-specific attributes here
 };
@@ -183,11 +184,11 @@ void initializeAmmo(Mech &mech);
 void initializeAmmo(Mech &mech) {
   for (uint8_t slot = 0; slot < 3; ++slot) {
     WeaponType type = mech.weapons[slot];
-    
+
     if (type == WeaponType::None) {
       mech.currentAmmo[slot] = 0;
     } else {
-      uint8_t index = type - 1; // Adjust since None = 0
+      uint8_t index = type - 1;  // Adjust since None = 0
       if (index < NUM_AVAILABLE_WEAPONS) {
         // Calculate the address for maxAmmo
         uint16_t address = index * WEAPON_ATTR_COUNT + 5;
@@ -204,7 +205,7 @@ void initializeMech(Mech &mech);
 void initializeMech(Mech &mech) {
   mech.health = 100;
   mech.status = MechStatus::Normal;
-  
+
   switch (mech.type) {
     case MechType::Mothra:
       mech.moveSpeed = 0.20;
@@ -227,17 +228,17 @@ void initializeMech(Mech &mech) {
       mech.weapons[1] = WeaponType::MediumRockets;
       mech.weapons[2] = WeaponType::Laser;
       break;
-    // Add initialization for other mech types if needed
+      // Add initialization for other mech types if needed
   }
-  
-  initializeAmmo(mech); // Initialize ammo for this specific mech
+
+  initializeAmmo(mech);  // Initialize ammo for this specific mech
 }
 
 // TODO: FURTHER REFINE ENEMY CODE TO REDUCE PROGRAM MEMORY
 
 #define MAX_ENEMIES 3
-#define APPROACH_DISTANCE_SQ (12 * 12)    // 144
-#define CIRCLE_DISTANCE_SQ (4 * 4)        // 16
+#define APPROACH_DISTANCE_SQ (12 * 12)  // 144
+#define CIRCLE_DISTANCE_SQ (4 * 4)      // 16
 #define FLASH_DURATION 5
 
 enum EnemyState : uint8_t {
@@ -292,23 +293,30 @@ void updateEnemies() {
     if (distSq <= CIRCLE_DISTANCE_SQ) {
       // **Close Distance** - Circling behavior
 
-      // Attack chance (10% chance)
-      if (random(10) == 0) {
-        Mech &currentMech = player.mechs[player.currentMech];
-        if (currentMech.health) {
-          flashTimer = FLASH_DURATION;
-          // Simplified health deduction
-          currentMech.health = currentMech.health > enemy.damage ? currentMech.health - enemy.damage : 0;
-        }
+      // Attack chance: make it depend on the player's armor.
+      // For baseline (player Mothra, armor==0) the chance is 1 in 5.
+      // If armor is higher, then (5 + armor) is larger and the 1-in-(5+armor) chance is lower.
+      // Inside your close-distance block:
+      //modified the formula so that armor doesn’t add as much to the denominator. 
+      //For example, using a factor less than 1 (e.g. using half the armor value) so that even high-armor players still get hit more frequently:
+      Mech &currentMech = player.mechs[player.currentMech];
+      if (currentMech.health && random(5 + player.mechs[player.currentMech].mechStats[3] / 2) == 0) {
+        flashTimer = FLASH_DURATION;
+        // Cast enemy.mechType to an integer before comparing
+        uint8_t type = (uint8_t)enemy.mechType;
+        uint8_t damage = type == 2 ? 3 : type == 1 ? 2
+                                                   : 1;
+        currentMech.health = currentMech.health > damage ? currentMech.health - damage : 0;
       }
 
-      // Assign circling direction if not assigned
+
+      // Assign circling direction if not yet set
       if (!enemy.circlingAssigned) {
         enemy.circlingAssigned = true;
         enemy.circlingDirection = random(2);
       }
 
-      // Move perpendicular to the player without division
+      // Move perpendicular to the player (avoiding division)
       if ((dx >= 0 ? dx : -dx) > (dy >= 0 ? dy : -dy)) {
         enemy.y += enemy.circlingDirection ? enemy.moveSpeed : -enemy.moveSpeed;
       } else {
@@ -320,11 +328,11 @@ void updateEnemies() {
       // Clear circling assigned flag
       enemy.circlingAssigned = false;
 
-      // Calculate movement steps without overshooting and eliminate abs()
+      // Calculate movement steps without overshooting and without calling abs()
       SQ7x8 stepX = dx > enemy.moveSpeed ? enemy.moveSpeed : (dx < -enemy.moveSpeed ? -enemy.moveSpeed : dx);
       SQ7x8 stepY = dy > enemy.moveSpeed ? enemy.moveSpeed : (dy < -enemy.moveSpeed ? -enemy.moveSpeed : dy);
 
-      // Apply movement steps
+      // Apply movement
       enemy.x += stepX;
       enemy.y += stepY;
     } else {
@@ -336,7 +344,7 @@ void updateEnemies() {
       }
       enemy.wanderCounter--;
 
-      // Direction arrays to replace switch-case
+      // Use static arrays for directions (minimal memory overhead)
       static const int8_t dxs[] = { 0, 1, 0, -1 };
       static const int8_t dys[] = { -1, 0, 1, 0 };
       enemy.x += dxs[enemy.wanderDirection] * enemy.moveSpeed;
@@ -349,10 +357,9 @@ void updateEnemies() {
   }
 }
 
-// TODO: FIX CONDITIONALS FOR MISSION GENERATION SINCE THEY MIGHT NOT BE SET UP CORRECTLY?
 
 // Define maximum constants
-constexpr uint8_t MAX_MISSIONS = 3;       // Maximum number of missions available at any time
+constexpr uint8_t MAX_MISSIONS = 3;  // Maximum number of missions available at any time
 
 struct Mission {
   uint8_t numEnemies;
@@ -377,17 +384,18 @@ Mission generateMission() {
   // (example: 1–2 for day<10, 2–3 for day<20, etc.)
   uint8_t minEnemies, maxEnemies;
   if (day < 10) {
-    minEnemies = 1; maxEnemies = 2;
-  } 
-  else if (day < 20) {
-    minEnemies = 2; maxEnemies = 3;
-  } 
-  else if (day < 30) {
-    minEnemies = 1; maxEnemies = 3;
-  } 
-  else {
+    minEnemies = 1;
+    maxEnemies = 2;
+  } else if (day < 20) {
+    minEnemies = 2;
+    maxEnemies = 3;
+  } else if (day < 30) {
+    minEnemies = 1;
+    maxEnemies = 3;
+  } else {
     // day >=30 && day <40, or if you like you can do another else if (day<40) ...
-    minEnemies = 1; maxEnemies = 3;
+    minEnemies = 1;
+    maxEnemies = 3;
   }
 
   // Generate the random enemy count
@@ -402,8 +410,7 @@ Mission generateMission() {
       // Low-tier (Mothra only)
       mission.mechs[i] = MechType::Mothra;
       totalDifficulty += 1;
-    } 
-    else if (day < 30) {
+    } else if (day < 30) {
       // Medium range: random Mothra or Battle_Cat
       if (random(0, 2) == 0) {
         mission.mechs[i] = MechType::Battle_Cat;
@@ -412,8 +419,7 @@ Mission generateMission() {
         mission.mechs[i] = MechType::Mothra;
         totalDifficulty += 1;
       }
-    }
-    else {
+    } else {
       // Higher range: random Battle_Cat or Thor_Hammer
       if (random(0, 2) == 0) {
         mission.mechs[i] = MechType::Battle_Cat;
@@ -638,9 +644,9 @@ void updateSaveLoadMenu() {
   }
 }
 
-void initializeMission(const Mission& mission);
+void initializeMission(const Mission &mission);
 
-void initializeMission(const Mission& mission) {
+void initializeMission(const Mission &mission) {
   player.x = random(worldWidth);   // Random player X position
   player.y = random(worldHeight);  // Random player Y position
   player.heat = 0;                 // Reset player heat to 0
@@ -839,7 +845,7 @@ void buyMech(MechType type) {
     // with message like "No empty mech slots"
   } else {
     // Not enough money; notify the player
-    // with message like "Not enough money"
+    // with notEnoughMoney message
   }
 }
 
@@ -860,7 +866,7 @@ void sellMech(uint8_t mechIndex) {
 
 // Function to display "Not Enough Money" message
 void displayNotEnoughMoney() {
-  FX::drawBitmap(9, 39, notEnoughMoney86x20, 0, dbmNormal);
+  FX::drawBitmap(9, 28, notEnoughMoney86x20, 0, dbmNormal);
 }
 
 // Global Variables
@@ -876,38 +882,57 @@ struct MechData {
 
 // Array of Mech Data indexed by MechType
 const MechData mechData[] = {
-  {Mothra30x40, mothraStr},       // MechType::Mothra
-  {Battle_Cat30x40, battleCatStr}, // MechType::Battle_Cat
-  {Thor_Hammer30x40, thorHammerStr} // MechType::Thor_Hammer
+  { Mothra30x40, mothraStr },          // MechType::Mothra
+  { Battle_Cat30x40, battleCatStr },   // MechType::Battle_Cat
+  { Thor_Hammer30x40, thorHammerStr }  // MechType::Thor_Hammer
 };
 
 // Function to draw the mech
 void drawPlayerMech(MechType type) {
-  const MechData& data = mechData[static_cast<uint8_t>(type)];
+  const MechData &data = mechData[static_cast<uint8_t>(type)];
   FX::drawBitmap(4, 4, data.bitmap, 0, dbmMasked);
   font4x6.setCursor(42, 4);
   font4x6.print(player.mechs[player.currentMech].health);
   FX::drawBitmap(4, 48, data.nameStr, 0, dbmNormal);
 }
 
-void updateHangerMenu() {
-  FX::drawBitmap(0, 0, hangerMenu128x64, 0, dbmMasked);
+// Somewhere outside or above this function, declare:
+bool inBuyMenu = false;
+// We assume you're already including Arduboy2, etc.
 
-  // Draw the current mech
+// Global or static variables to track the buy menu selection
+static uint8_t buyMenuSelection = 0;
+
+// Example: how many items the buy menu has
+constexpr uint8_t BUY_MENU_ITEM_COUNT = 3;
+
+void updateHangerMenu() {
+  // Always draw the hanger background and player mech first
+  FX::drawBitmap(0, 0, hangerMenu128x64, 0, dbmMasked);
   drawPlayerMech(player.mechs[player.currentMech].type);
 
-  if (!inRepairMenu && !notEnoughMoneyMessage) {
+  // If the "Not Enough Money" message is active, display it and wait for dismissal
+  if (notEnoughMoneyMessage) {
+    displayNotEnoughMoney();
+    if (arduboy.justPressed(A_BUTTON) || arduboy.justPressed(B_BUTTON)) {
+      notEnoughMoneyMessage = false;
+    }
+    return;  // Skip all other processing so the message persists
+  }
+
+  // Only update the main hanger menu if we're not in a submenu
+  if (!inRepairMenu && !inBuyMenu) {
     updateMenu(hangerMenu);
   }
 
+  // Handle button presses
   if (arduboy.justPressed(B_BUTTON) || arduboy.justPressed(A_BUTTON)) {
-    if (notEnoughMoneyMessage) {
-      notEnoughMoneyMessage = false;
-    } else if (inRepairMenu) {
+    // Repair menu handling
+    if (inRepairMenu) {
       if (arduboy.justPressed(B_BUTTON)) {
         inRepairMenu = false;
       } else if (arduboy.justPressed(A_BUTTON)) {
-        // Confirm repair
+        // Confirm repair: check if the player has enough money
         if (player.money >= repairCost) {
           player.money -= repairCost;
           player.mechs[player.currentMech].health = 100;
@@ -916,12 +941,49 @@ void updateHangerMenu() {
           notEnoughMoneyMessage = true;
         }
       }
-    } else {
+    }
+    // Buy menu handling
+    else if (inBuyMenu) {
       if (arduboy.justPressed(B_BUTTON)) {
-        currentState = previousState;
+        inBuyMenu = false;
+      } else if (arduboy.justPressed(A_BUTTON)) {
+        uint16_t cost = 0;
+        switch(buyMenuSelection) {
+          case 0:
+            cost = getMechCost(MechType::Mothra);
+            break;
+          case 1:
+            cost = getMechCost(MechType::Battle_Cat);
+            break;
+          case 2:
+            cost = getMechCost(MechType::Thor_Hammer);
+            break;
+        }
+        if (player.money >= cost) {
+          switch (buyMenuSelection) {
+            case 0:
+              buyMech(MechType::Mothra);
+              break;
+            case 1:
+              buyMech(MechType::Battle_Cat);
+              break;
+            case 2:
+              buyMech(MechType::Thor_Hammer);
+              break;
+          }
+          inBuyMenu = false;
+        } else {
+          notEnoughMoneyMessage = true;
+        }
+      }
+    }
+    // Main hanger menu handling (when not in a submenu)
+    else {
+      if (arduboy.justPressed(B_BUTTON)) {
+        currentState = previousState;  // Exit hanger menu
       } else if (arduboy.justPressed(A_BUTTON)) {
         switch (hangerMenu.currentSelection) {
-          case 0:
+          case 0: // Repair
             inRepairMenu = true;
             initializeAmmo(player.mechs[player.currentMech]);
             {
@@ -930,31 +992,19 @@ void updateHangerMenu() {
               repairCost = missingHealth * repairCostPerHealthPoint;
             }
             break;
-          case 1:
+          case 1: // Customization
             currentState = GameState::Customization_Submenu;
             break;
-          case 2:
-            {
-              MechType mechToBuy = MechType::Thor_Hammer;
-              uint16_t cost = getMechCost(mechToBuy);
-              if (player.money >= cost) {
-                buyMech(mechToBuy);
-              } else {
-                mechToBuy = MechType::Battle_Cat;
-                cost = getMechCost(mechToBuy);
-                if (player.money >= cost) {
-                  buyMech(mechToBuy);
-                }
-              }
-            }
+          case 2: // Buy
+            inBuyMenu = true;
             break;
-          case 3:
+          case 3: // Sell
             sellMech(player.currentMech);
             break;
-          case 4:
+          case 4: // Next Mech
             switchToNextMech();
             break;
-          case 5:
+          case 5: // Previous Mech
             switchToPreviousMech();
             break;
         }
@@ -962,13 +1012,12 @@ void updateHangerMenu() {
     }
   }
 
+  // If in repair menu, show the repair box
   if (inRepairMenu) {
-    // Fixed box dimensions to save code size
     uint8_t x = 32;
     uint8_t y = 39;
     uint8_t boxWidth = 64;
 
-    // Display repair cost
     arduboy.drawRect(x - 1, y - 1, boxWidth + 2, 22, WHITE);
     arduboy.fillRect(x, y, boxWidth, 20, BLACK);
 
@@ -976,14 +1025,37 @@ void updateHangerMenu() {
     font4x6.setCursor(x + 30, y);
     font4x6.print(repairCost);
 
-    // Prompt for confirmation
     FX::drawBitmap(x + 2, y + 11, pressAStr, 0, dbmNormal);
   }
 
-  if (notEnoughMoneyMessage) {
-    displayNotEnoughMoney();
+  // If in buy menu, display the buy menu and navigable items
+  if (inBuyMenu) {
+    FX::drawBitmap(20, 5, mechBuyMenu62x27, 0, dbmNormal);
+
+    if (arduboy.justPressed(UP_BUTTON)) {
+      if (buyMenuSelection > 0) {
+        buyMenuSelection--;
+      }
+    }
+    if (arduboy.justPressed(DOWN_BUTTON)) {
+      if (buyMenuSelection < BUY_MENU_ITEM_COUNT - 1) {
+        buyMenuSelection++;
+      }
+    }
+
+    uint8_t itemStartX = 20;
+    uint8_t itemStartY = 5;
+    uint8_t itemWidth  = 62;
+    uint8_t itemHeight = 9;
+    for (uint8_t i = 0; i < BUY_MENU_ITEM_COUNT; i++) {
+      uint8_t yPos = itemStartY + (i * itemHeight);
+      if (i == buyMenuSelection) {
+        arduboy.drawRect(itemStartX, yPos, itemWidth, itemHeight, WHITE);
+      }
+    }
   }
 }
+
 
 // Global Variables for Weapon Menu
 bool inWeaponMenu = false;
@@ -1080,13 +1152,13 @@ void displaySellConfirmation() {
   FX::drawBitmap(12, 35, AyesBnoStr, 0, dbmNormal);
 }
 
-// Updated updateCustomizationMenu() Function
 void updateCustomizationMenu() {
+  // Draw the underlying UI first.
   FX::drawBitmap(0, 0, customizationMenu128x64, 0, dbmMasked);
 
   // Display stats
-  const uint8_t yPositions[] = {0, 7, 14, 21, 34};
-  const uint8_t statsIndices[] = {3, 0, 1}; // Armor, Weight, Heatsink
+  const uint8_t yPositions[] = { 0, 7, 14, 21, 34 };
+  const uint8_t statsIndices[] = { 3, 0, 1 };  // Armor, Weight, Heatsink
   for (uint8_t i = 0; i < 3; i++) {
     font4x6.setCursor(50, yPositions[i]);
     font4x6.print(player.mechs[player.currentMech].mechStats[statsIndices[i]]);
@@ -1100,10 +1172,24 @@ void updateCustomizationMenu() {
   font4x6.setCursor(50, yPositions[4]);
   font4x6.print(static_cast<long>(player.money));
 
+  // Draw the menu if not adjusting stats or in weapon submenu
   if (!adjustingStat && !inWeaponMenu) {
     updateMenu(customizationMenu);
   }
 
+  // If the "Not Enough Money" message is active, draw the overlay and only process its dismissal.
+  if (notEnoughMoneyMessage) {
+    displayNotEnoughMoney();
+    if (arduboy.justPressed(A_BUTTON) || arduboy.justPressed(B_BUTTON)) {
+      notEnoughMoneyMessage = false;
+    }
+    // Do not process any other input while the overlay is active.
+    return;
+  }
+
+  // Otherwise, process input normally.
+
+  // Global buttons (B for back, A for selection)
   if (arduboy.justPressed(B_BUTTON)) {
     if (adjustingStat) {
       adjustingStat = false;
@@ -1132,7 +1218,7 @@ void updateCustomizationMenu() {
     }
   }
 
-  // Handle adjusting stats
+  // Handle adjusting stats input (only if not in weapon menu)
   if (adjustingStat && !inWeaponMenu) {
     uint8_t statIndex = (customizationMenu.currentSelection == 0) ? 3 : 1;
     uint8_t maxStatIndex = statIndex + 1;
@@ -1140,14 +1226,12 @@ void updateCustomizationMenu() {
 
     if (arduboy.justPressed(RIGHT_BUTTON)) {
       if (player.mechs[player.currentMech].mechStats[statIndex] < player.mechs[player.currentMech].mechStats[maxStatIndex] &&
-          player.mechs[player.currentMech].moveSpeed > 0 &&
-          player.money >= 100) {
+          player.mechs[player.currentMech].moveSpeed > 0 && player.money >= 100) {
         FX::drawBitmap(112, xPos, rightArrowSmall, 0, dbmMasked);
         player.mechs[player.currentMech].mechStats[statIndex]++;
         player.mechs[player.currentMech].mechStats[0]++;
         player.mechs[player.currentMech].moveSpeed -= 0.01;
         player.money -= 100;
-
         if (player.mechs[player.currentMech].moveSpeed < 0) {
           player.mechs[player.currentMech].moveSpeed = 0;
         }
@@ -1165,7 +1249,7 @@ void updateCustomizationMenu() {
     }
   }
 
-  // Handle Weapon Menu
+  // Handle Weapon Menu input
   if (inWeaponMenu) {
     if (!viewingAvailableWeapons && !sellingWeapon) {
       displayWeaponSlots(selectedWeaponSlot);
@@ -1178,7 +1262,7 @@ void updateCustomizationMenu() {
         selectedWeaponSlot = (selectedWeaponSlot < 2) ? selectedWeaponSlot + 1 : 0;
       }
 
-      // Handle selection
+      // Handle selection on weapon slot
       if (arduboy.justPressed(A_BUTTON)) {
         if (justEnteredWeaponMenu) {
           justEnteredWeaponMenu = false;
@@ -1195,7 +1279,7 @@ void updateCustomizationMenu() {
     } else if (viewingAvailableWeapons) {
       displayAvailableWeapons(selectedAvailableWeapon);
 
-      // Navigate through available weapons
+      // Navigate available weapons
       if (arduboy.justPressed(UP_BUTTON)) {
         selectedAvailableWeapon = (selectedAvailableWeapon > 0) ? selectedAvailableWeapon - 1 : NUM_AVAILABLE_WEAPONS - 1;
       }
@@ -1203,7 +1287,7 @@ void updateCustomizationMenu() {
         selectedAvailableWeapon = (selectedAvailableWeapon < NUM_AVAILABLE_WEAPONS - 1) ? selectedAvailableWeapon + 1 : 0;
       }
 
-      // Handle purchase
+      // Handle purchase attempt
       if (arduboy.justPressed(A_BUTTON)) {
         Weapon selectedWeapon = getAvailableWeapon(selectedAvailableWeapon);
         if (player.money >= selectedWeapon.cost) {
@@ -1217,7 +1301,7 @@ void updateCustomizationMenu() {
     } else if (sellingWeapon) {
       displaySellConfirmation();
 
-      // Handle selling
+      // Handle selling weapon
       if (arduboy.justPressed(A_BUTTON)) {
         WeaponType weaponToSell = player.mechs[player.currentMech].weapons[selectedWeaponSlot];
         if (weaponToSell != WeaponType::None) {
@@ -1226,14 +1310,6 @@ void updateCustomizationMenu() {
           player.mechs[player.currentMech].weapons[selectedWeaponSlot] = WeaponType::None;
         }
         sellingWeapon = false;
-      }
-    }
-
-    // Display "Not Enough Money" message if needed
-    if (notEnoughMoneyMessage) {
-      displayNotEnoughMoney();
-      if (arduboy.justPressed(A_BUTTON) || arduboy.justPressed(B_BUTTON)) {
-        notEnoughMoneyMessage = false;
       }
     }
   }
@@ -1647,7 +1723,7 @@ void drawHUD() {
   drawHealthBar();
   drawHeatBar();
 
-  switch(player.mechs[player.currentMech].type){
+  switch (player.mechs[player.currentMech].type) {
     case MechType::Mothra:
       font4x6.setCursor(60, 52);
       break;
@@ -1657,7 +1733,7 @@ void drawHUD() {
     case MechType::Thor_Hammer:
       font4x6.setCursor(4, 52);
       break;
-  } 
+  }
 
   font4x6.print(player.mechs[player.currentMech].currentAmmo[player.currentWeaponSlot]);
 }
@@ -1825,97 +1901,97 @@ void drawTargetedEnemyRectangle(uint8_t enemyIndex) {
 
 // Function to fire a rocket if cooldown allows and an enemy is in view
 bool fireRocket() {
-    if (rocketFireCooldown != 0) return false;  // Correctly return false when cooldown is active
+  if (rocketFireCooldown != 0) return false;  // Correctly return false when cooldown is active
 
-    uint8_t nearestEnemy = INACTIVE_TARGET;
-    SQ15x16 nearestDistSq = SQ15x16(999999);  // Arbitrary large value
+  uint8_t nearestEnemy = INACTIVE_TARGET;
+  SQ15x16 nearestDistSq = SQ15x16(999999);  // Arbitrary large value
 
-    // Find the nearest active enemy in view
-    for (uint8_t j = 0; j < MAX_ENEMIES; ++j) {
-        if (enemies[j].state == EnemyState::Inactive) continue;
+  // Find the nearest active enemy in view
+  for (uint8_t j = 0; j < MAX_ENEMIES; ++j) {
+    if (enemies[j].state == EnemyState::Inactive) continue;
 
-        DrawParameters drawParams;
-        if (!to3DView(enemies[j], drawParams)) continue;
+    DrawParameters drawParams;
+    if (!to3DView(enemies[j], drawParams)) continue;
 
-        SQ7x8 dx = wrapDistance(enemies[j].x, player.x, worldWidth);
-        SQ7x8 dy = wrapDistance(enemies[j].y, player.y, worldHeight);
-        SQ15x16 distSq = (SQ15x16)dx * dx + (SQ15x16)dy * dy;
+    SQ7x8 dx = wrapDistance(enemies[j].x, player.x, worldWidth);
+    SQ7x8 dy = wrapDistance(enemies[j].y, player.y, worldHeight);
+    SQ15x16 distSq = (SQ15x16)dx * dx + (SQ15x16)dy * dy;
 
-        if (distSq < nearestDistSq) {
-            nearestDistSq = distSq;
-            nearestEnemy = j;
-        }
+    if (distSq < nearestDistSq) {
+      nearestDistSq = distSq;
+      nearestEnemy = j;
     }
+  }
 
-    if (nearestEnemy == INACTIVE_TARGET) return false;  // No target found
+  if (nearestEnemy == INACTIVE_TARGET) return false;  // No target found
 
-    // Activate the first available rocket slot
-    for (uint8_t i = 0; i < MAX_ROCKETS; ++i) {
-        if (rockets[i].targetIndex != INACTIVE_TARGET) continue;  // Slot is active
+  // Activate the first available rocket slot
+  for (uint8_t i = 0; i < MAX_ROCKETS; ++i) {
+    if (rockets[i].targetIndex != INACTIVE_TARGET) continue;  // Slot is active
 
-        rockets[i].x = player.x;
-        rockets[i].y = player.y;
-        rockets[i].angle = player.angle;
-        rockets[i].lifetime = 0;
-        rockets[i].targetIndex = nearestEnemy;
-        rocketFireCooldown = ROCKET_FIRE_DELAY;
-        return true;  // Rocket successfully fired
-    }
+    rockets[i].x = player.x;
+    rockets[i].y = player.y;
+    rockets[i].angle = player.angle;
+    rockets[i].lifetime = 0;
+    rockets[i].targetIndex = nearestEnemy;
+    rocketFireCooldown = ROCKET_FIRE_DELAY;
+    return true;  // Rocket successfully fired
+  }
 
-    return false;  // No available rocket slots
+  return false;  // No available rocket slots
 }
 
 // Function to update all active rockets
 void updateRockets() {
-    if (rocketFireCooldown > 0) rocketFireCooldown--;
+  if (rocketFireCooldown > 0) rocketFireCooldown--;
 
-    for (uint8_t i = 0; i < MAX_ROCKETS; ++i) {
-        Rocket &rocket = rockets[i];
-        if (rocket.targetIndex == INACTIVE_TARGET) continue;
+  for (uint8_t i = 0; i < MAX_ROCKETS; ++i) {
+    Rocket &rocket = rockets[i];
+    if (rocket.targetIndex == INACTIVE_TARGET) continue;
 
-        uint8_t target = rocket.targetIndex;
-        if (enemies[target].state == EnemyState::Inactive) {
-            rocket.targetIndex = INACTIVE_TARGET;
-            rocket.lifetime = 0;
-            continue;
-        }
-
-        DrawParameters drawParams;
-        if (!to3DView(enemies[target], drawParams)) {
-            rocket.targetIndex = INACTIVE_TARGET;
-            rocket.lifetime = 0;
-            continue;
-        }
-
-        // Calculate position differences
-        SQ7x8 dx = wrapDistance(enemies[target].x, rocket.x, worldWidth);
-        SQ7x8 dy = wrapDistance(enemies[target].y, rocket.y, worldHeight);
-
-        // Adjust rocket angle towards the target
-        SQ7x8 cosTheta = Cos(rocket.angle);
-        SQ7x8 sinTheta = Sin(rocket.angle);
-        int16_t cross = (int16_t)(cosTheta * dy - sinTheta * dx);
-
-        if (cross > 0) {
-            rocket.angle += ROCKET_TURN_SPEED;
-        } else if (cross < 0) {
-            rocket.angle -= ROCKET_TURN_SPEED;
-        }
-
-        // Move the rocket forward
-        rocket.x += ROCKET_SPEED * Cos(rocket.angle);
-        rocket.y += ROCKET_SPEED * Sin(rocket.angle);
-
-        // Wrap around the world coordinates
-        rocket.x = wrapCoordinate(rocket.x, worldWidth);
-        rocket.y = wrapCoordinate(rocket.y, worldHeight);
-
-        // Update lifetime and deactivate if expired
-        if (++rocket.lifetime >= MAX_ROCKET_LIFETIME) {
-            rocket.targetIndex = INACTIVE_TARGET;
-            rocket.lifetime = 0;
-        }
+    uint8_t target = rocket.targetIndex;
+    if (enemies[target].state == EnemyState::Inactive) {
+      rocket.targetIndex = INACTIVE_TARGET;
+      rocket.lifetime = 0;
+      continue;
     }
+
+    DrawParameters drawParams;
+    if (!to3DView(enemies[target], drawParams)) {
+      rocket.targetIndex = INACTIVE_TARGET;
+      rocket.lifetime = 0;
+      continue;
+    }
+
+    // Calculate position differences
+    SQ7x8 dx = wrapDistance(enemies[target].x, rocket.x, worldWidth);
+    SQ7x8 dy = wrapDistance(enemies[target].y, rocket.y, worldHeight);
+
+    // Adjust rocket angle towards the target
+    SQ7x8 cosTheta = Cos(rocket.angle);
+    SQ7x8 sinTheta = Sin(rocket.angle);
+    int16_t cross = (int16_t)(cosTheta * dy - sinTheta * dx);
+
+    if (cross > 0) {
+      rocket.angle += ROCKET_TURN_SPEED;
+    } else if (cross < 0) {
+      rocket.angle -= ROCKET_TURN_SPEED;
+    }
+
+    // Move the rocket forward
+    rocket.x += ROCKET_SPEED * Cos(rocket.angle);
+    rocket.y += ROCKET_SPEED * Sin(rocket.angle);
+
+    // Wrap around the world coordinates
+    rocket.x = wrapCoordinate(rocket.x, worldWidth);
+    rocket.y = wrapCoordinate(rocket.y, worldHeight);
+
+    // Update lifetime and deactivate if expired
+    if (++rocket.lifetime >= MAX_ROCKET_LIFETIME) {
+      rocket.targetIndex = INACTIVE_TARGET;
+      rocket.lifetime = 0;
+    }
+  }
 }
 
 // Function to render all active rockets
@@ -2211,12 +2287,12 @@ void handleInput() {
     uint8_t &currentAmmo = player.mechs[player.currentMech].currentAmmo[player.currentWeaponSlot];
 
     if ((currentWeapon == WeaponType::Bullets || currentWeapon == WeaponType::HeavyBullets) && currentAmmo > 0) {
-      if (fireBullet()) {          // Only decrement if fired
+      if (fireBullet()) {  // Only decrement if fired
         playerIsShooting = true;
         --currentAmmo;
       }
     } else if ((currentWeapon == WeaponType::Rockets || currentWeapon == WeaponType::MediumRockets) && currentAmmo > 0) {
-      if(fireRocket()) {
+      if (fireRocket()) {
         playerIsShooting = true;
         --currentAmmo;
       }
@@ -2338,8 +2414,7 @@ void loop() {
       checkBulletEnemyCollisions();  // Check for bullet-enemy collisions
       renderBullets();               // Render bullets
 
-      if (player.mechs[player.currentMech].weapons[player.currentWeaponSlot] == WeaponType::Rockets ||
-        player.mechs[player.currentMech].weapons[player.currentWeaponSlot] == WeaponType::MediumRockets){
+      if (player.mechs[player.currentMech].weapons[player.currentWeaponSlot] == WeaponType::Rockets || player.mechs[player.currentMech].weapons[player.currentWeaponSlot] == WeaponType::MediumRockets) {
         renderTargetRectangle();
       }
       updateRockets();
